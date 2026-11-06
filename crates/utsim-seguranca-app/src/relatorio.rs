@@ -52,6 +52,7 @@ impl TelaRelatorio {
             .map(|p| p.id.clone())
             .collect();
         let todos = marcados.len() == postos.len();
+        let marcados_pdf = marcados.clone();
         if ui
             .add_enabled(
                 !marcados.is_empty(),
@@ -69,6 +70,25 @@ impl TelaRelatorio {
                 }
             }
         }
-        ui.weak("O PDF virá depois; por ora o relatório é um HTML que se imprime pelo navegador.");
+        if ui
+            .add_enabled(
+                !marcados_pdf.is_empty(),
+                egui::Button::new("Gravar PDF do inventário"),
+            )
+            .clicked()
+        {
+            let escolha = if todos { Vec::new() } else { marcados_pdf };
+            if let Some(u) = s.unidade.as_ref() {
+                let inv = Inventario::ler(u);
+                let hoje = util::hoje();
+                let b = blocos(&inv, &u.manifesto.nome, &escolha, &hoje);
+                let bytes =
+                    utsim_seguranca_core::relatorio::pdf(&b, &format!("{}, {hoje}", u.autor()));
+                match u.gravar_relatorio("inventario_riscos.pdf", &bytes) {
+                    Ok(p) => s.avisar(format!("Relatório gravado em {}", p.display())),
+                    Err(e) => s.falhar(e.to_string()),
+                }
+            }
+        }
     }
 }
