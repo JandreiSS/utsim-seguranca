@@ -19,6 +19,8 @@ utsim-posto.workspace = true
 utsim-posto-ui.workspace = true
 utsim-seguranca-core.workspace = true
 utsim-exposicao.workspace = true
+utsim-diagram.workspace = true
+serde_json.workspace = true
 utsim-model.workspace = true
 utsim-ui-tema.workspace = true
 # Same egui as the other apps, so Cargo.lock keeps one egui. Light: glow renderer only.

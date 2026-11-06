@@ -6,6 +6,7 @@ use eframe::egui;
 
 use utsim_posto_ui::{Sessao, TelaInicial, TelaPostos};
 
+use crate::ergonomia::TelaErgonomia;
 use crate::exposicao::TelaExposicao;
 use crate::inventario::TelaInventario;
 use crate::matriz::TelaMatriz;
@@ -18,6 +19,7 @@ pub enum Tela {
     Inventario,
     Matriz,
     Exposicao,
+    Ergonomia,
     Relatorio,
 }
 
@@ -29,6 +31,7 @@ pub struct App {
     pub inventario: TelaInventario,
     pub matriz: TelaMatriz,
     pub exposicao: TelaExposicao,
+    pub ergonomia: TelaErgonomia,
     pub relatorio: TelaRelatorio,
 }
 
@@ -42,6 +45,7 @@ impl App {
             inventario: TelaInventario::default(),
             matriz: TelaMatriz::default(),
             exposicao: TelaExposicao::default(),
+            ergonomia: TelaErgonomia::default(),
             relatorio: TelaRelatorio::default(),
         }
     }
@@ -58,6 +62,7 @@ impl App {
                     (Tela::Inventario, "Inventário de riscos"),
                     (Tela::Matriz, "Matriz"),
                     (Tela::Exposicao, "Exposição"),
+                    (Tela::Ergonomia, "Ergonomia"),
                     (Tela::Relatorio, "Relatório"),
                 ];
                 let aberta = self.sessao.unidade.is_some();
@@ -86,6 +91,7 @@ impl App {
                 Tela::Inventario => self.inventario.ui(ui, &mut self.sessao),
                 Tela::Matriz => self.matriz.ui(ui, &mut self.sessao),
                 Tela::Exposicao => self.exposicao.ui(ui, &mut self.sessao),
+                Tela::Ergonomia => self.ergonomia.ui(ui, &mut self.sessao),
                 Tela::Relatorio => self.relatorio.ui(ui, &mut self.sessao),
             });
         });
