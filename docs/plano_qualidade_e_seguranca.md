@@ -413,6 +413,14 @@ O MVP entrega um estudo completo em sala ou na empresa piloto. Um modelo com def
 
 ## 10. Decisões do dono
 
+**Aceitas pelo dono em 2026-11-06.** Todas as propostas desta seção valem como decididas. Onde não havia proposta fica o padrão abaixo, que o dono pode trocar a qualquer momento.
+
+- **G4:** ensino primeiro, empresa piloto depois.
+- **S2:** matriz 5x5.
+- **S4:** limiar padrão de 1,5 m, sem depender da velocidade no MVP. É revisto na QS5 com o dono.
+
+O MVP (QS0 a QS9) começa numa sessão própria.
+
 ### Gerais
 
 1. **G1 Formato.** Proposta: camadas da seção 2.2 (núcleo, pacotes de linha transversais, um app com duas áreas). Alternativas: dois apps separados, tudo dentro do Seis Sigma, só linhas.
