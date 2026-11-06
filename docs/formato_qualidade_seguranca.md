@@ -52,7 +52,7 @@ quality: Some((
 
 - **Defeito.** Probabilidade base por item, multiplicada pelos fatores e limitada a 1. `Cycle` multiplica nos `first` primeiros itens de cada ciclo de `every` itens do objeto (peças logo depois do setup ou da troca de ferramenta). `Label` multiplica quando o item tem o rótulo numérico igual a `equals` (habilidade, turno, lote de material). Um número é sempre sorteado por tipo de defeito, para que mudar a probabilidade de um tipo não desloque o sorteio dos outros.
 - **Característica.** Valor sorteado da distribuição, mais o deslocamento do ciclo (`shift`, sorteado no primeiro item de cada ciclo) e mais a deriva (`drift` vezes a posição do item no ciclo). Fora dos limites, o item ganha `defeito.<característica>`.
-- `unit_cost` guarda o custo de uma peça refugada depois deste processo, para o relatório. O custo da qualidade completo é a etapa QS10.
+- Custos (etapa QS10, nunca lidos pela simulação): `unit_cost` é o valor que o processo agrega a cada peça, perdido quando ela é refugada, e `escape_cost` é o custo de cada defeito do processo que chega ao cliente. A inspeção tem `cost` por peça inspecionada e o retrabalho tem `cost` por passagem. O manual, no capítulo "Defeitos, inspeção e retrabalho", descreve o relatório de custos.
 
 ## 4. `inspection` e saídas
 
