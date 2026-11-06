@@ -431,7 +431,7 @@ O MVP (QS0 a QS9) começa numa sessão própria.
 
 1. **G1 Formato.** Decidido: camadas da seção 2.2 (núcleo e pacotes de linha transversais), com **dois apps separados** em vez de um app com duas áreas (decisão do dono em 2026-11-06).
 2. **G2 Pacotes transversais.** Proposta: campo `packs` no modelo, ao lado de `line`, para combinar Qualidade e Segurança com qualquer linha.
-3. **G3 Ferramentas comuns.** Proposta: extrair FMEA, AP, Pareto, Ishikawa, 5 porquês, A3 e plano de controle para `utsim-ferramentas` antes das telas novas.
+3. **G3 Ferramentas comuns.** Proposta: extrair FMEA, AP, Pareto, Ishikawa, 5 porquês, A3 e plano de controle para `utsim-ferramentas` antes das telas novas. *Feito em 2026-11-06:* AP, Pareto e relatórios primeiro; depois FMEA, Ishikawa, 5 porquês, árvore, planos de coleta, de controle e de reação e as seções do A3, como structs e regras puras genéricas no identificador (`utsim_ferramentas::{fmea, ishikawa, cinco_porques, arvore, planos, a3}`). O Seis Sigma lê o diário para essas structs e grava as edições (`utsim_lss_core::tools::*`, mesmos caminhos). O formato salvo não mudou (mesmos nomes de item e de campo), então não houve migração; um teste grava as ferramentas com os nomes literais e confere a leitura.
 4. **G4 Público inicial.** Ensino, empresa piloto ou os dois. Define a ordem depois do MVP.
 5. **G5 Nome.** "UTSim Qualidade" (crates `utsim-qualidade-*`) e "UTSim Segurança do Trabalho" (crates `utsim-seguranca-*`).
 6. **G6 Armazenamento.** Proposta: generalizar `utsim-lss-store` em vez de criar `utsim-qs-store`.
