@@ -434,7 +434,7 @@ O MVP (QS0 a QS9) começa numa sessão própria.
 3. **G3 Ferramentas comuns.** Proposta: extrair FMEA, AP, Pareto, Ishikawa, 5 porquês, A3 e plano de controle para `utsim-ferramentas` antes das telas novas.
 4. **G4 Público inicial.** Ensino, empresa piloto ou os dois. Define a ordem depois do MVP.
 5. **G5 Nome.** "UTSim Qualidade" (crates `utsim-qualidade-*`) e "UTSim Segurança do Trabalho" (crates `utsim-seguranca-*`).
-6. **G6 Armazenamento.** Proposta: generalizar `utsim-lss-store` em vez de criar `utsim-qs-store`.
+6. **G6 Armazenamento.** Feito do jeito menos invasivo, combinado com a sessão do Seis Sigma: as primitivas de arquivo seguras no Drive saíram do `utsim-lss-store` para a crate comum `utsim-pasta`, que o Seis Sigma reexporta em `fsio` sem mudar o formato do projeto. A pasta de unidade (`utsim-posto`) usa essas primitivas e tem pasta restrita para dados pessoais (`utsim_posto::restrita`), com códigos na unidade, lista de quem grava e anonimização que apaga os arquivos com o nome.
 
 ### Qualidade
 
