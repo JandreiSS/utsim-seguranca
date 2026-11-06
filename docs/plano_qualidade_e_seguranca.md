@@ -95,7 +95,7 @@ Documentos relacionados, que este plano não repete:
 2. **Predefinições como pacotes de linha transversais.** "Qualidade" e "Segurança" entram no `utsim-linhas` como pacotes que se somam à linha principal do modelo (um modelo Lean Office pode ligar o pacote Qualidade). Isso pede um campo `packs: Vec<String>` além de `line` (decisão G2).
 3. **Um app novo com duas áreas** para o que é registro permanente e gestão (posto de trabalho, plano de controle, inspeção, custo da qualidade, 8D, inventário de riscos, ergonomia, checklist, incidentes e indicadores). As ferramentas que já existem no Seis Sigma (FMEA, Pareto, Ishikawa, 5 porquês, A3, plano de controle) saem de `utsim-lss-core::tools` para uma crate comum, usada pelos dois apps (seção 8).
 
-Nome provisório **UTSim Qualidade e Segurança**, produto `qualidade-seguranca` no launcher, prefixo de crates `utsim-qs-*`. A alternativa de dois apps separados fica registrada na decisão G1.
+Decisão do dono em 2026-11-06 (G1): em vez de um app com duas áreas, **dois apps separados**, **UTSim Qualidade** (produto `qualidade`, crates `utsim-qualidade-*`) e **UTSim Segurança do Trabalho** (produto `seguranca`, crates `utsim-seguranca-*`), com as partes comuns em crates pequenas.
 
 ---
 
@@ -312,7 +312,7 @@ O formato do pacote é decidido no plano do app de ensino. Este plano só pede q
 
 ### 7.4 Launcher
 
-Nova entrada `qualidade-seguranca` no manifesto, canal e código de acesso próprios, tag `qs-v0.1.0`, e atalho "abrir no UTSim" pelo mesmo mecanismo do Seis Sigma.
+Duas entradas no manifesto, `qualidade` e `seguranca`, cada uma com ícone, canal e código de acesso próprios, tags `qualidade-v0.1.0` e `seguranca-v0.1.0`, e atalho "abrir no UTSim" pelo mesmo mecanismo do Seis Sigma.
 
 ---
 
@@ -324,10 +324,15 @@ Nova entrada `qualidade-seguranca` no manifesto, canal e código de acesso próp
 |---|---|---|---|
 | `utsim-quality` (existe, cresce) | pura | planos de amostragem por atributos, curva característica de operação, AOQ e ATI, eficácia de inspeção a partir da MSA | `utsim-stats` |
 | `utsim-ferramentas` (nova, extraída) | pura | FMEA, AP, Pareto, Ishikawa, 5 porquês, A3, plano de controle e de reação, 8D | `utsim-stats` |
-| `utsim-qs-core` (nova) | pura | posto de trabalho, inventário de perigos, matriz de risco, ergonomia, EPI, checklist, incidentes e indicadores, custo da qualidade, plano de inspeção, regras e migrações do formato | `utsim-ferramentas`, `utsim-quality` |
+| `utsim-posto` (nova, comum) | pura com acesso a arquivo | posto de trabalho ligado ao objeto do modelo e pasta de unidade com uma operação por arquivo, usada pelos dois apps | `utsim-model` |
+| `utsim-posto-ui` (nova, comum) | egui `=0.36.2` | tela inicial (abrir ou criar unidade) e tela de postos, sem telas de qualidade ou de segurança | `utsim-posto` |
+| `utsim-qualidade-core` (nova) | pura | indicadores de qualidade da simulação, Pareto, capacidade da característica simulada, relatório; depois custo da qualidade, planos de controle, inspeção e amostragem, 8D | `utsim-model`, `utsim-quality` |
+| `utsim-seguranca-core` (nova) | pura | inventário de perigos, matriz de risco, hierarquia de controle, plano de ação, relatório com aviso legal; depois ergonomia, EPI, checklist, incidentes e indicadores | `utsim-posto`, `utsim-exposicao` |
 | `utsim-exposicao` (nova, ou módulo de `utsim-model`) | pura | tempo em polígono, proximidade entre pessoas e veículos, mapa de calor, sobre o rastro | `utsim-model`, `utsim-nav` |
-| `utsim-qs-store` (nova) ou `utsim-lss-store` generalizada | nativa | pasta com diário, pastas restritas, anexos por hash | `utsim-qs-core` |
-| `utsim-qs-app` (nova, binário `utsim-qualidade-seguranca`) | egui `=0.36.2` | telas das duas áreas, ponte com o simulador em fio de trabalho, PDF e `.xlsx` | as acima, `utsim-model`, `utsim-diagram` |
+| `utsim-qualidade-app` (nova, binário `utsim-qualidade`) | egui `=0.36.2` | app UTSim Qualidade | `utsim-qualidade-core`, `utsim-posto-ui` |
+| `utsim-seguranca-app` (nova, binário `utsim-seguranca`) | egui `=0.36.2` | app UTSim Segurança do Trabalho | `utsim-seguranca-core`, `utsim-posto-ui` |
+
+Os dois apps são separados (decisão G1 revista): cada um com ícone, canal e código de acesso próprios no launcher (produtos `qualidade` e `seguranca`). O que é comum fica nas crates `utsim-posto`, `utsim-posto-ui` e `utsim-ferramentas`, sem misturar telas. A pasta de unidade é a mesma para os dois apps. No MVP ela é a de `utsim-posto`. A generalização do `utsim-lss-store` (G6) fica para depois, porque mexeria no armazenamento do Seis Sigma em uso.
 
 Mudanças no núcleo, em `utsim-model` e `utsim-objects`, são os blocos `quality:` e `inspection:`, o papel `refugo` e `cliente` do `Sink`, `zones:` no modelo, `ppe:` no objeto e a saída longa de características. Todos opcionais, com migração de formato e modelos antigos abrindo como hoje.
 
@@ -363,8 +368,8 @@ O MVP entrega um estudo completo em sala ou na empresa piloto. Um modelo com def
 | **QS5 Zonas, EPI e exposição** (MVP) | `utsim-exposicao`, tempo em polígono, proximidade, entradas sem EPI, mapa de calor, avisos de conferência do layout | 14–18 | Opus | QS0, `utsim-nav` | tempo em zona conferido com trajetória de geometria conhecida, contagem de proximidade estável com passo de amostragem menor |
 | **QS6 Camada de segurança e qualidade no 3D** (MVP) | peças de EPI geradas por código, troca no posto, zonas no piso e edição, mapa de calor, marcadores de quase-conflito, cor do item com defeito, ícone da inspeção | 14–20 | Sonnet 12–17, Haiku 1–2 | QS5, QS2 | pessoa troca EPI ao entrar no posto na reprodução, regressão visual com capturas comparadas aprovada |
 | **QS7 Extração de `utsim-ferramentas`** (MVP) | mover ferramentas do `utsim-lss-core`, migração do projeto Seis Sigma | 6–9 | Opus 3–4, Sonnet 3–5 | decisão G3 | todos os testes do Seis Sigma passam, projeto antigo abre igual |
-| **QS8 Fundação do app** (MVP) | `utsim-qs-core`, `utsim-qs-store` ou store generalizada, binário egui, pasta de unidade, cadastro de postos ligado ao modelo, entrada no launcher | 22–30 | Opus 10–14, Sonnet 12–16 | QS7 | duas pessoas editam a mesma pasta pelo Drive sem perder operação, posto ligado ao objeto do modelo por id |
-| **QS9 Inventário de riscos e matriz** (MVP) | fluxo em cinco etapas, matriz própria configurável e importável, hierarquia de controle, plano de ação, relatório PDF com aviso legal | 16–22 | Opus 4–6, Sonnet 12–16 | QS8 | matriz monótona em todas as combinações, relatório traz o aviso, CSV da empresa substitui a matriz |
+| **QS8 Fundação dos dois apps** (MVP) | `utsim-posto` e `utsim-posto-ui` comuns, binários `utsim-qualidade` e `utsim-seguranca`, pasta de unidade, cadastro de postos ligado ao modelo, simulação de qualidade no app de Qualidade, entradas no launcher | 22–30 | Opus 10–14, Sonnet 12–16 | QS7 | duas pessoas editam a mesma pasta pelo Drive sem perder operação, posto ligado ao objeto do modelo por id |
+| **QS9 Inventário de riscos e matriz** (MVP, app de Segurança) | fluxo em cinco etapas, matriz própria configurável e importável, hierarquia de controle, plano de ação, relatório PDF com aviso legal | 16–22 | Opus 4–6, Sonnet 12–16 | QS8 | matriz monótona em todas as combinações, relatório traz o aviso, CSV da empresa substitui a matriz |
 | *Subtotal do MVP* | | *115–159* | *Opus ≈ 60–80, Sonnet ≈ 53–76, Haiku ≈ 1–2* | | |
 | **QS10 Custo da qualidade** | categorias, custo unitário no modelo, lançamentos manuais, comparação de cenários | 10–14 | Opus 3–4, Sonnet 7–10 | QS3, custos do backlog | soma por categoria confere com contagens vezes custos em caso de teste |
 | **QS11 Planos de controle, inspeção e amostragem** | planos permanentes por posto, amostragem simples e dupla, curva OC, AOQ, ATI, plano aplicado ao modelo | 16–22 | Opus 10–13, Sonnet 6–9 | QS8, QS2 | probabilidades conferidas com cálculo direto da binomial e da hipergeométrica, plano gerado cumpre os dois riscos pedidos |
@@ -415,7 +420,7 @@ O MVP entrega um estudo completo em sala ou na empresa piloto. Um modelo com def
 
 **Aceitas pelo dono em 2026-11-06.** Todas as propostas desta seção valem como decididas. Onde não havia proposta fica o padrão abaixo, que o dono pode trocar a qualquer momento.
 
-- **G1, revista pelo dono no mesmo dia:** "Qualidade deve ser uma, Segurança do Trabalho, outra". Em vez de um app com duas áreas, são **dois apps**: **UTSim Qualidade** (binário `utsim-qualidade`, crate `utsim-qualidade-app`, produto `qualidade` no launcher) e **UTSim Segurança do Trabalho** (binário `utsim-seguranca`, crate `utsim-seguranca-app`, produto `seguranca`). O que os dois usam fica em crates comuns: `utsim-ferramentas` (ferramentas extraídas do Seis Sigma) e `utsim-posto` (posto de trabalho e pasta de unidade). O cálculo de cada app fica em `utsim-qualidade-core` e `utsim-seguranca-core`. As camadas do núcleo e dos pacotes de linha não mudam. Onde o texto abaixo fala em "app com duas áreas", leia os dois apps.
+- **G1: dois apps separados, decisão do dono em 2026-11-06.** Nas palavras do dono: "Qualidade deve ser uma, Segurança do Trabalho, outra". Em vez de um app com duas áreas, são **dois apps**: **UTSim Qualidade** (binário `utsim-qualidade`, crate `utsim-qualidade-app`, produto `qualidade` no launcher) e **UTSim Segurança do Trabalho** (binário `utsim-seguranca`, crate `utsim-seguranca-app`, produto `seguranca`). O que os dois usam fica em crates comuns: `utsim-ferramentas` (ferramentas extraídas do Seis Sigma) e `utsim-posto` (posto de trabalho e pasta de unidade). O cálculo de cada app fica em `utsim-qualidade-core` e `utsim-seguranca-core`. As camadas do núcleo e dos pacotes de linha não mudam. Onde o texto abaixo fala em "app com duas áreas", leia os dois apps.
 - **G4:** ensino primeiro, empresa piloto depois.
 - **S2:** matriz 5x5.
 - **S4:** limiar padrão de 1,5 m, sem depender da velocidade no MVP. É revisto na QS5 com o dono.
@@ -424,11 +429,11 @@ O MVP (QS0 a QS9) começa numa sessão própria.
 
 ### Gerais
 
-1. **G1 Formato.** Proposta: camadas da seção 2.2 (núcleo, pacotes de linha transversais, um app com duas áreas). Alternativas: dois apps separados, tudo dentro do Seis Sigma, só linhas.
+1. **G1 Formato.** Decidido: camadas da seção 2.2 (núcleo e pacotes de linha transversais), com **dois apps separados** em vez de um app com duas áreas (decisão do dono em 2026-11-06).
 2. **G2 Pacotes transversais.** Proposta: campo `packs` no modelo, ao lado de `line`, para combinar Qualidade e Segurança com qualquer linha.
 3. **G3 Ferramentas comuns.** Proposta: extrair FMEA, AP, Pareto, Ishikawa, 5 porquês, A3 e plano de controle para `utsim-ferramentas` antes das telas novas.
 4. **G4 Público inicial.** Ensino, empresa piloto ou os dois. Define a ordem depois do MVP.
-5. **G5 Nome.** Provisório "UTSim Qualidade e Segurança", prefixo `utsim-qs-*`.
+5. **G5 Nome.** "UTSim Qualidade" (crates `utsim-qualidade-*`) e "UTSim Segurança do Trabalho" (crates `utsim-seguranca-*`).
 6. **G6 Armazenamento.** Proposta: generalizar `utsim-lss-store` em vez de criar `utsim-qs-store`.
 
 ### Qualidade
