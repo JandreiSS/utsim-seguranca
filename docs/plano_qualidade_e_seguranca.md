@@ -415,6 +415,7 @@ O MVP entrega um estudo completo em sala ou na empresa piloto. Um modelo com def
 
 **Aceitas pelo dono em 2026-11-06.** Todas as propostas desta seção valem como decididas. Onde não havia proposta fica o padrão abaixo, que o dono pode trocar a qualquer momento.
 
+- **G1, revista pelo dono no mesmo dia:** "Qualidade deve ser uma, Segurança do Trabalho, outra". Em vez de um app com duas áreas, são **dois apps**: **UTSim Qualidade** (binário `utsim-qualidade`, crate `utsim-qualidade-app`, produto `qualidade` no launcher) e **UTSim Segurança do Trabalho** (binário `utsim-seguranca`, crate `utsim-seguranca-app`, produto `seguranca`). O que os dois usam fica em crates comuns: `utsim-ferramentas` (ferramentas extraídas do Seis Sigma) e `utsim-posto` (posto de trabalho e pasta de unidade). O cálculo de cada app fica em `utsim-qualidade-core` e `utsim-seguranca-core`. As camadas do núcleo e dos pacotes de linha não mudam. Onde o texto abaixo fala em "app com duas áreas", leia os dois apps.
 - **G4:** ensino primeiro, empresa piloto depois.
 - **S2:** matriz 5x5.
 - **S4:** limiar padrão de 1,5 m, sem depender da velocidade no MVP. É revisto na QS5 com o dono.
