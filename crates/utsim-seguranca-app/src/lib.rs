@@ -5,8 +5,11 @@
 //! O aviso legal ([`AVISO_LEGAL`]) fica fixo no rodapé de todas as telas.
 
 pub mod app;
+pub mod checklist;
+pub mod epi;
 pub mod ergonomia;
 pub mod exposicao;
+pub mod incidentes;
 pub mod inventario;
 pub mod matriz;
 pub mod relatorio;

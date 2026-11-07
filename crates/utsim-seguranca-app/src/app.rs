@@ -6,8 +6,11 @@ use eframe::egui;
 
 use utsim_posto_ui::{Sessao, TelaInicial, TelaPostos};
 
+use crate::checklist::TelaChecklist;
+use crate::epi::TelaEpi;
 use crate::ergonomia::TelaErgonomia;
 use crate::exposicao::TelaExposicao;
+use crate::incidentes::TelaIncidentes;
 use crate::inventario::TelaInventario;
 use crate::matriz::TelaMatriz;
 use crate::relatorio::TelaRelatorio;
@@ -20,6 +23,9 @@ pub enum Tela {
     Matriz,
     Exposicao,
     Ergonomia,
+    Checklist,
+    Epi,
+    Incidentes,
     Relatorio,
 }
 
@@ -32,6 +38,9 @@ pub struct App {
     pub matriz: TelaMatriz,
     pub exposicao: TelaExposicao,
     pub ergonomia: TelaErgonomia,
+    pub checklist: TelaChecklist,
+    pub epi: TelaEpi,
+    pub incidentes: TelaIncidentes,
     pub relatorio: TelaRelatorio,
 }
 
@@ -46,6 +55,9 @@ impl App {
             matriz: TelaMatriz::default(),
             exposicao: TelaExposicao::default(),
             ergonomia: TelaErgonomia::default(),
+            checklist: TelaChecklist::default(),
+            epi: TelaEpi::default(),
+            incidentes: TelaIncidentes::default(),
             relatorio: TelaRelatorio::default(),
         }
     }
@@ -63,6 +75,9 @@ impl App {
                     (Tela::Matriz, "Matriz"),
                     (Tela::Exposicao, "Exposição"),
                     (Tela::Ergonomia, "Ergonomia"),
+                    (Tela::Checklist, "Checklist"),
+                    (Tela::Epi, "EPI"),
+                    (Tela::Incidentes, "Incidentes"),
                     (Tela::Relatorio, "Relatório"),
                 ];
                 let aberta = self.sessao.unidade.is_some();
@@ -92,6 +107,9 @@ impl App {
                 Tela::Matriz => self.matriz.ui(ui, &mut self.sessao),
                 Tela::Exposicao => self.exposicao.ui(ui, &mut self.sessao),
                 Tela::Ergonomia => self.ergonomia.ui(ui, &mut self.sessao),
+                Tela::Checklist => self.checklist.ui(ui, &mut self.sessao),
+                Tela::Epi => self.epi.ui(ui, &mut self.sessao),
+                Tela::Incidentes => self.incidentes.ui(ui, &mut self.sessao),
                 Tela::Relatorio => self.relatorio.ui(ui, &mut self.sessao),
             });
         });
