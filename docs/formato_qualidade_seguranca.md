@@ -110,3 +110,19 @@ O gancho de qualidade de cada objeto usa um fluxo próprio, `1 << 43` mais o ín
 ## 8. Migração
 
 Nenhuma. Os campos novos têm valor padrão ausente e não são gravados quando ausentes, então um modelo antigo lido e gravado de novo fica igual. O teste `quality_blocks_absent_keep_old_models` confere que todos os exemplos de `examples/` passam pela leitura sem ganhar campo novo.
+
+## 9. Métricas no relatório da simulação
+
+Para que experimentos, otimização e as missões do UTSim Ensino leiam a qualidade e a exposição como qualquer outra métrica (`RunReport::metrics`), o relatório ganha chaves só nos modelos que usam os blocos novos.
+
+| Chave | Onde | O que é |
+|---|---|---|
+| `<saída>.pecas_defeituosas` | `Sink` com `sink_role` | peças que chegaram com algum defeito presente |
+| `<saída>.pct_defeituosas` | idem | a fração delas sobre as entradas (no cliente, o escape) |
+| `<saída>.retrabalhadas` | idem | peças que passaram pelo retrabalho |
+| `<saída>.defeitos.<tipo>` | idem | defeitos presentes por tipo |
+| `<recurso>.quase_conflitos` | recurso móvel, modelo com `zones` | quase-conflitos simulados de que participou |
+| `<pessoa>.sem_epi` | pessoa, modelo com `zones` | entradas em zona sem o EPI pedido |
+| `<pessoa>.tempo_zona.<zona>` e `<pessoa>.entradas_zona.<zona>` | idem | tempo e entradas em cada zona |
+
+As contagens das saídas valem na janela de estatística, como `input`. A exposição usa as opções padrão (limiar de 1,5 m). Num modelo com zonas, o rastro é gravado para esse cálculo, o que custa memória mas não muda nenhum número da simulação.
