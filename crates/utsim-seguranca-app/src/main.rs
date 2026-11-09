@@ -15,12 +15,18 @@ fn main() -> ExitCode {
                 return ExitCode::SUCCESS;
             }
             "--ajuda" | "--help" | "-h" => {
-                println!("utsim-seguranca\n  abre a janela do UTSim Segurança do Trabalho");
+                println!(
+                    "utsim-seguranca\n  abre a janela do UTSim Segurança do Trabalho
+  --utsim-abrir=<modelo.ron> --utsim-no=<nome>   abre o modelo no nó
+  --utsim-abrir=<dados.csv|.xlsx> --utsim-ferramenta=<chave>   abre os dados numa ferramenta"
+                );
                 return ExitCode::SUCCESS;
             }
             _ => {}
         }
     }
+    // `--utsim-abrir=<modelo.ron> --utsim-no=<nome>` ou `--utsim-abrir=<dados.csv>`.
+    let pedido = utsim_posto_ui::Abrir::de_args(std::env::args().skip(1));
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title(TITULO)
@@ -34,7 +40,11 @@ fn main() -> ExitCode {
         options,
         Box::new(|cc| {
             utsim_ui_tema::install(&cc.egui_ctx);
-            Ok(Box::new(App::new(utsim_posto_ui::sessao::arquivo_padrao())))
+            let mut app = App::new(utsim_posto_ui::sessao::arquivo_padrao());
+            if !pedido.vazio() {
+                app.atender(&pedido);
+            }
+            Ok(Box::new(app))
         }),
     );
     match result {

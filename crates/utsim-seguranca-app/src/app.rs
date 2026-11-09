@@ -72,6 +72,21 @@ impl App {
         }
     }
 
+    /// Atende o pedido da linha de comando (`--utsim-abrir`, seção 2.2 do plano de
+    /// integração): o modelo no nó, ou os dados numa ferramenta.
+    pub fn atender(&mut self, a: &utsim_posto_ui::Abrir) {
+        match utsim_posto_ui::abrir::atender(
+            a,
+            &mut self.sessao,
+            &mut self.modelo,
+            &mut self.ferramentas,
+        ) {
+            Some(utsim_posto_ui::Destino::Modelo) => self.tela = Tela::Modelo,
+            Some(utsim_posto_ui::Destino::Ferramentas) => self.tela = Tela::Ferramentas,
+            None => {}
+        }
+    }
+
     pub fn draw(&mut self, ui: &mut egui::Ui) {
         self.sessao.atualizar_se_preciso(ui.ctx());
         egui::Panel::top("navegacao").show(ui, |ui| {
@@ -94,7 +109,8 @@ impl App {
                 ];
                 let aberta = self.sessao.unidade.is_some();
                 for (t, nome) in abas {
-                    ui.add_enabled_ui(aberta || t == Tela::Inicial, |ui| {
+                    let modelo_aberto = t == Tela::Modelo && self.modelo.aberto();
+                    ui.add_enabled_ui(aberta || modelo_aberto || t == Tela::Inicial, |ui| {
                         if ui.selectable_label(self.tela == t, nome).clicked() {
                             self.tela = t;
                         }
