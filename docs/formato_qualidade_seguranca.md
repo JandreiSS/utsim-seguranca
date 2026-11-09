@@ -126,3 +126,19 @@ Para que experimentos, otimização e as missões do UTSim Ensino leiam a qualid
 | `<pessoa>.tempo_zona.<zona>` e `<pessoa>.entradas_zona.<zona>` | idem | tempo e entradas em cada zona |
 
 As contagens das saídas valem na janela de estatística, como `input`. A exposição usa as opções padrão (limiar de 1,5 m). Num modelo com zonas, o rastro é gravado para esse cálculo, o que custa memória mas não muda nenhum número da simulação.
+
+## 10. Blocos das abas do nó
+
+Pela direção do dono de 2026-11-08 (`docs/plano_integracao_familia.md`, seção 3), o nó guarda também os dados que antes ficavam só na pasta de unidade. A simulação não lê nenhum dos dois blocos.
+
+- `quality.control`: linhas do plano de controle das características medidas no processo (`characteristic`, `method`, `msa_ok`, `frequency`, `sample_size`, `chart`, `reaction`, `fmea`). A característica precisa existir em `quality.characteristics`.
+- `safety`: `hazards` (perigos do posto com `id` único no nó, `group`, `description`, `source`, `circumstance`, `injuries`, `controls`, `probability` e `severity` de 0 a 4 na matriz padrão, `origin`) e `ergonomics` (marcações por elemento do estudo de tempos, com `actor`, `element`, postura de 0 a 3 em `trunk`, `arms`, `neck` e `legs`, `load_kg`, `grip` e `vibration` de 0 a 2).
+
+```ron
+(name: "prensa", kind: Processor(process: Const(40.0)),
+ ppe: ["oculos", "protetor_auricular"],
+ safety: Some((
+     hazards: [(id: "h1", group: Accident, description: "Prensagem da mão", probability: 1, severity: 4)],
+     ergonomics: [(actor: "ana", element: "carregar prensa", trunk: 2, arms: 1, load_kg: 12.0, grip: 1)],
+ ))),
+```
