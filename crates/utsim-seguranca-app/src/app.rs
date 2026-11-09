@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use eframe::egui;
 
-use utsim_posto_ui::{Sessao, TelaInicial, TelaPostos};
+use utsim_posto_ui::{Sessao, TelaInicial, TelaModelo, TelaPostos};
 
 use crate::checklist::TelaChecklist;
 use crate::epi::TelaEpi;
@@ -19,6 +19,7 @@ use crate::relatorio::TelaRelatorio;
 pub enum Tela {
     Inicial,
     Postos,
+    Modelo,
     Inventario,
     Matriz,
     Exposicao,
@@ -34,6 +35,7 @@ pub struct App {
     pub tela: Tela,
     pub inicial: TelaInicial,
     pub postos: TelaPostos,
+    pub modelo: TelaModelo,
     pub inventario: TelaInventario,
     pub matriz: TelaMatriz,
     pub exposicao: TelaExposicao,
@@ -51,6 +53,7 @@ impl App {
             tela: Tela::Inicial,
             inicial: TelaInicial::default(),
             postos: TelaPostos::default(),
+            modelo: crate::modelo::tela(),
             inventario: TelaInventario::default(),
             matriz: TelaMatriz::default(),
             exposicao: TelaExposicao::default(),
@@ -70,6 +73,7 @@ impl App {
                 ui.separator();
                 let abas = [
                     (Tela::Inicial, "Unidade"),
+                    (Tela::Modelo, "Modelo"),
                     (Tela::Postos, "Postos"),
                     (Tela::Inventario, "Inventário de riscos"),
                     (Tela::Matriz, "Matriz"),
@@ -99,10 +103,15 @@ impl App {
             egui::ScrollArea::both().show(ui, |ui| match self.tela {
                 Tela::Inicial => {
                     if self.inicial.ui(ui, &mut self.sessao) {
-                        self.tela = Tela::Postos;
+                        self.tela = if self.sessao.tem_modelo() {
+                            Tela::Modelo
+                        } else {
+                            Tela::Postos
+                        };
                     }
                 }
                 Tela::Postos => self.postos.ui(ui, &mut self.sessao),
+                Tela::Modelo => self.modelo.ui(ui, &mut self.sessao),
                 Tela::Inventario => self.inventario.ui(ui, &mut self.sessao),
                 Tela::Matriz => self.matriz.ui(ui, &mut self.sessao),
                 Tela::Exposicao => self.exposicao.ui(ui, &mut self.sessao),

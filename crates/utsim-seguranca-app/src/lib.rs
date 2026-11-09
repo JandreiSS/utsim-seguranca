@@ -12,6 +12,7 @@ pub mod exposicao;
 pub mod incidentes;
 pub mod inventario;
 pub mod matriz;
+pub mod modelo;
 pub mod relatorio;
 
 pub use app::{App, Tela};
