@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use eframe::egui;
 
-use utsim_posto_ui::{Sessao, TelaInicial, TelaModelo, TelaPostos};
+use utsim_posto_ui::{Sessao, TelaFerramentas, TelaInicial, TelaModelo, TelaPostos};
 
 use crate::checklist::TelaChecklist;
 use crate::epi::TelaEpi;
@@ -20,6 +20,7 @@ pub enum Tela {
     Inicial,
     Postos,
     Modelo,
+    Ferramentas,
     Inventario,
     Matriz,
     Exposicao,
@@ -36,6 +37,7 @@ pub struct App {
     pub inicial: TelaInicial,
     pub postos: TelaPostos,
     pub modelo: TelaModelo,
+    pub ferramentas: TelaFerramentas,
     pub inventario: TelaInventario,
     pub matriz: TelaMatriz,
     pub exposicao: TelaExposicao,
@@ -54,6 +56,11 @@ impl App {
             inicial: TelaInicial::default(),
             postos: TelaPostos::default(),
             modelo: crate::modelo::tela(),
+            ferramentas: TelaFerramentas::nova(
+                utsim_estudo::App::Seguranca,
+                crate::identidade(),
+                None,
+            ),
             inventario: TelaInventario::default(),
             matriz: TelaMatriz::default(),
             exposicao: TelaExposicao::default(),
@@ -74,6 +81,7 @@ impl App {
                 let abas = [
                     (Tela::Inicial, "Unidade"),
                     (Tela::Modelo, "Modelo"),
+                    (Tela::Ferramentas, "Ferramentas"),
                     (Tela::Postos, "Postos"),
                     (Tela::Inventario, "Inventário de riscos"),
                     (Tela::Matriz, "Matriz"),
@@ -99,7 +107,19 @@ impl App {
             ui.colored_label(egui::Color32::from_rgb(230, 160, 40), crate::AVISO_LEGAL);
         });
         egui::Panel::bottom("estado").show(ui, |ui| self.sessao.barra(ui));
+        if let Some((modelo, objeto)) = self.modelo.pedido_ferramentas.take() {
+            self.ferramentas.abrir_no(&modelo, &objeto);
+            self.tela = Tela::Ferramentas;
+        }
+        if self.tela != Tela::Ferramentas {
+            self.ferramentas.gravar_pendente(&mut self.sessao);
+        }
         egui::CentralPanel::default().show(ui, |ui| {
+            if self.tela == Tela::Ferramentas {
+                // A tela tem as próprias barras de rolagem (lista e ferramenta).
+                self.ferramentas.ui(ui, &mut self.sessao);
+                return;
+            }
             egui::ScrollArea::both().show(ui, |ui| match self.tela {
                 Tela::Inicial => {
                     if self.inicial.ui(ui, &mut self.sessao) {
@@ -112,6 +132,7 @@ impl App {
                 }
                 Tela::Postos => self.postos.ui(ui, &mut self.sessao),
                 Tela::Modelo => self.modelo.ui(ui, &mut self.sessao),
+                Tela::Ferramentas => {}
                 Tela::Inventario => self.inventario.ui(ui, &mut self.sessao),
                 Tela::Matriz => self.matriz.ui(ui, &mut self.sessao),
                 Tela::Exposicao => self.exposicao.ui(ui, &mut self.sessao),
@@ -128,5 +149,9 @@ impl App {
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.draw(ui);
+    }
+
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        self.ferramentas.gravar_pendente(&mut self.sessao);
     }
 }

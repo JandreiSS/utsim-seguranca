@@ -17,6 +17,7 @@ path = "src/lib.rs"
 [dependencies]
 utsim-posto.workspace = true
 utsim-posto-ui.workspace = true
+utsim-estudo.workspace = true
 utsim-seguranca-core.workspace = true
 utsim-exposicao.workspace = true
 utsim-diagram.workspace = true

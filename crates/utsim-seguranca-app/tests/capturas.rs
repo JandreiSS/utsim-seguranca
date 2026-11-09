@@ -53,3 +53,53 @@ fn modelo_picture() {
     }
     app.modelo.fechar();
 }
+
+/// The "Ferramentas" tab with the demonstration study (only the tools of this app) and its
+/// Ishikawa chosen.
+#[test]
+fn ferramentas_ishikawa_picture() {
+    use utsim_estudo::{App as AppEstudo, Ferramenta};
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = App::new(Some(dir.path().join("cfg.json")));
+    assert!(
+        app.sessao
+            .criar(&dir.path().join("unidade"), "Fábrica", "Ana")
+    );
+    let mut e = utsim_estudo::exemplo::estudo_demonstracao();
+    e.app = AppEstudo::Seguranca;
+    e.aplicacoes
+        .retain(|a| Ferramenta::do_app(AppEstudo::Seguranca).contains(&a.ferramenta));
+    app.sessao
+        .unidade
+        .as_mut()
+        .unwrap()
+        .gravar(utsim_estudo::ESTUDOS, &e.id, &e)
+        .unwrap();
+    app.sessao.mudou();
+    app.tela = Tela::Ferramentas;
+    app.ferramentas.sincronizar(&app.sessao);
+    app.ferramentas.abrir_estudo(&mut app.sessao, &e.id);
+    let ishikawa = e
+        .aplicacoes
+        .iter()
+        .find(|a| a.ferramenta == Ferramenta::Ishikawa)
+        .unwrap()
+        .id
+        .clone();
+    app.ferramentas.escolher_aplicacao(&ishikawa);
+    let mut cap = Captura::new(Context::default(), vec2(1280.0, 860.0));
+    let img = cap.imagem(3, |ui| app.draw(ui));
+    let mut cores = std::collections::BTreeSet::new();
+    for y in (0..img.height).step_by(9) {
+        for x in (0..img.width).step_by(9) {
+            cores.insert(img.pixel(x, y));
+        }
+    }
+    assert!(cores.len() > 20, "a tela quase não pintou nada");
+    if let Some(d) = std::env::var_os("UTSIM_CAPTURAS") {
+        let d = std::path::PathBuf::from(d);
+        std::fs::create_dir_all(&d).unwrap();
+        img.salvar_png(&d.join("seguranca_ferramentas_ishikawa.png"))
+            .unwrap();
+    }
+}

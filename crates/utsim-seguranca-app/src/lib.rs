@@ -19,3 +19,16 @@ pub use app::{App, Tela};
 pub use utsim_seguranca_core::AVISO_LEGAL;
 
 pub const TITULO: &str = "UTSim Segurança do Trabalho";
+/// A cor do app (capa dos relatórios e launcher).
+pub const COR: &str = "#F28C1E";
+/// O ícone do app em PNG (capa do relatório em HTML).
+pub const ICONE: &[u8] = include_bytes!("../../../assets/icone/familia/seguranca_256.png");
+
+/// A identidade do app nos relatórios dos estudos.
+pub fn identidade() -> utsim_estudo::relatorio::Identidade {
+    utsim_estudo::relatorio::Identidade {
+        app: TITULO.into(),
+        cor: COR.into(),
+        icone_png: ICONE.to_vec(),
+    }
+}
