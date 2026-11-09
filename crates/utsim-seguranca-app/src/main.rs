@@ -25,7 +25,8 @@ fn main() -> ExitCode {
         viewport: egui::ViewportBuilder::default()
             .with_title(TITULO)
             .with_inner_size([1180.0, 780.0])
-            .with_min_inner_size([800.0, 520.0]),
+            .with_min_inner_size([800.0, 520.0])
+            .with_maximized(true),
         ..Default::default()
     };
     let result = eframe::run_native(
