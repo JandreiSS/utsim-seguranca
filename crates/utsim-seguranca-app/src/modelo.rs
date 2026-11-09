@@ -19,7 +19,8 @@ struct Soma {
 
 /// Exposição simulada por nó. As pessoas de um nó são as que passam por zonas que
 /// contêm a posição do nó (e, para um nó que é a própria pessoa, as zonas por onde ela
-/// passou). Médias por replicação.
+/// passou). Os quase-conflitos contam só os que acontecem dentro dessas zonas, ou de que o
+/// nó participa. Médias por replicação.
 pub fn resumo(modelo: &Model) -> Result<Resumo, String> {
     let reps = analyze_all(modelo, Options::default()).map_err(|e| e.to_string())?;
     let n = reps.len().max(1) as f64;
@@ -60,9 +61,17 @@ pub fn resumo(modelo: &Model) -> Result<Resumo, String> {
                     s.sem_epi += f64::from(z.entries_without_ppe) / n;
                 }
             }
+            // Only the near conflicts that happen inside the zones of the node, or that the
+            // node itself (a person or a vehicle) takes part in.
             for q in &e.near_misses {
-                if let Some(s) = por_pessoa.get_mut(&q.person) {
-                    s.quase += 1.0 / n;
+                let aqui = q.person == o.name
+                    || q.vehicle == o.name
+                    || modelo
+                        .zones
+                        .iter()
+                        .any(|z| zonas.contains(&z.name.as_str()) && contains(&z.polygon, q.at));
+                if aqui {
+                    por_pessoa.entry(q.person.clone()).or_default().quase += 1.0 / n;
                 }
             }
         }
