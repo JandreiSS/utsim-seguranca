@@ -5,7 +5,7 @@
 use std::process::ExitCode;
 
 use eframe::egui;
-use utsim_seguranca_app::{App, TITULO};
+use utsim_seguranca_app::{App, ICONE, TITULO};
 
 fn main() -> ExitCode {
     if let Some(a) = std::env::args().nth(1) {
@@ -21,12 +21,20 @@ fn main() -> ExitCode {
             _ => {}
         }
     }
+    let mut viewport = egui::ViewportBuilder::default()
+        .with_title(TITULO)
+        .with_inner_size([1180.0, 780.0])
+        .with_min_inner_size([800.0, 520.0])
+        .with_maximized(true);
+    if let Some((w, h, rgba)) = utsim_ui_tema::familia::png_rgba(ICONE) {
+        viewport = viewport.with_icon(std::sync::Arc::new(egui::IconData {
+            rgba,
+            width: w as u32,
+            height: h as u32,
+        }));
+    }
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_title(TITULO)
-            .with_inner_size([1180.0, 780.0])
-            .with_min_inner_size([800.0, 520.0])
-            .with_maximized(true),
+        viewport,
         ..Default::default()
     };
     let result = eframe::run_native(

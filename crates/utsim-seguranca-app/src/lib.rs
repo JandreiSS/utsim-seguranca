@@ -19,3 +19,6 @@ pub use app::{App, Tela};
 pub use utsim_seguranca_core::AVISO_LEGAL;
 
 pub const TITULO: &str = "UTSim Segurança do Trabalho";
+
+/// O ícone do app (o mesmo do lançador), na janela e na abertura.
+pub const ICONE: &[u8] = include_bytes!("../../../assets/icone/familia/seguranca_256.png");

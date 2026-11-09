@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use eframe::egui;
 
-use utsim_posto_ui::{Sessao, TelaInicial, TelaModelo, TelaPostos};
+use utsim_posto_ui::{Marca, Saida, Sessao, TelaInicial, TelaModelo, TelaPostos};
 
 use crate::checklist::TelaChecklist;
 use crate::epi::TelaEpi;
@@ -72,7 +72,7 @@ impl App {
                 ui.strong(crate::TITULO);
                 ui.separator();
                 let abas = [
-                    (Tela::Inicial, "Unidade"),
+                    (Tela::Inicial, "Início"),
                     (Tela::Modelo, "Modelo"),
                     (Tela::Postos, "Postos"),
                     (Tela::Inventario, "Inventário de riscos"),
@@ -100,16 +100,12 @@ impl App {
         });
         egui::Panel::bottom("estado").show(ui, |ui| self.sessao.barra(ui));
         egui::CentralPanel::default().show(ui, |ui| {
+            if self.tela == Tela::Inicial {
+                self.abertura(ui);
+                return;
+            }
             egui::ScrollArea::both().show(ui, |ui| match self.tela {
-                Tela::Inicial => {
-                    if self.inicial.ui(ui, &mut self.sessao) {
-                        self.tela = if self.sessao.tem_modelo() {
-                            Tela::Modelo
-                        } else {
-                            Tela::Postos
-                        };
-                    }
-                }
+                Tela::Inicial => {}
                 Tela::Postos => self.postos.ui(ui, &mut self.sessao),
                 Tela::Modelo => self.modelo.ui(ui, &mut self.sessao),
                 Tela::Inventario => self.inventario.ui(ui, &mut self.sessao),
@@ -125,8 +121,41 @@ impl App {
     }
 }
 
+impl App {
+    /// A abertura: abrir ou criar a unidade, os recentes e onde fica salvo.
+    fn abertura(&mut self, ui: &mut egui::Ui) {
+        match self.inicial.ui(ui, &mut self.sessao, &MARCA) {
+            Some(Saida::Aberta | Saida::Continuar) => {
+                self.tela = if self.sessao.tem_modelo() {
+                    Tela::Modelo
+                } else {
+                    Tela::Postos
+                };
+            }
+            Some(Saida::Modelo(p)) => {
+                let autor = self.sessao.config.autor.clone();
+                match self.modelo.abrir(&p, &autor) {
+                    Ok(()) => self.tela = Tela::Modelo,
+                    Err(e) => self.sessao.falhar(e),
+                }
+            }
+            Some(Saida::Acao(_)) | None => {}
+        }
+    }
+}
+
+/// O nome, a cor e o ícone do app na abertura (os mesmos do lançador).
+pub const MARCA: Marca = Marca {
+    nome: crate::TITULO,
+    subtitulo: "Segurança do trabalho",
+    cor: egui::Color32::from_rgb(0xF2, 0x8C, 0x1E),
+    icone: Some(crate::ICONE),
+    modelo: "Abra um arquivo .ron do simulador para ver e editar a segurança de cada nó.",
+};
+
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        utsim_ui_tema::maximizar_no_inicio(ui.ctx());
         self.draw(ui);
     }
 }

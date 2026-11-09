@@ -242,7 +242,14 @@ impl TelaChecklist {
         });
         ui.horizontal(|ui| {
             ui.label("Importar CSV (tema;item;severidade):");
-            ui.add(egui::TextEdit::singleline(&mut self.arquivo_csv).desired_width(300.0));
+            utsim_ui_tema::arquivos::campo(
+                ui,
+                &mut self.arquivo_csv,
+                utsim_ui_tema::arquivos::Tipo::Abrir,
+                "Escolha o arquivo CSV",
+                &[utsim_ui_tema::arquivos::CSV],
+                300.0,
+            );
             ui.label("Nome:");
             ui.add(egui::TextEdit::singleline(&mut self.nome_modelo).desired_width(160.0));
             if ui.button("Ler").clicked() {

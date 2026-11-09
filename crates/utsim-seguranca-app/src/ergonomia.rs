@@ -244,7 +244,7 @@ impl TelaErgonomia {
         };
         ui.horizontal(|ui| {
             ui.label("Modelo (.ron):");
-            ui.add(egui::TextEdit::singleline(&mut self.modelo).desired_width(380.0));
+            utsim_posto_ui::util::campo_modelo(ui, &mut self.modelo, s.unidade.as_ref(), 380.0);
             if !modelos.is_empty() {
                 egui::ComboBox::from_id_salt("modelos_ergonomia")
                     .selected_text("modelos dos postos")
@@ -276,7 +276,14 @@ impl TelaErgonomia {
         ui.horizontal(|ui| {
             ui.label(format!("Método: {}", metodo.nome));
             ui.label("Importar método (CSV):");
-            ui.add(egui::TextEdit::singleline(&mut self.arquivo_metodo).desired_width(300.0));
+            utsim_ui_tema::arquivos::campo(
+                ui,
+                &mut self.arquivo_metodo,
+                utsim_ui_tema::arquivos::Tipo::Abrir,
+                "Escolha o arquivo CSV",
+                &[utsim_ui_tema::arquivos::CSV],
+                300.0,
+            );
             if ui.button("Importar").clicked() {
                 self.importar_metodo(s);
             }
@@ -380,7 +387,7 @@ impl TelaErgonomia {
         ui.strong("Comparar com outro modelo");
         ui.horizontal(|ui| {
             ui.label("Segundo modelo (.ron):");
-            ui.add(egui::TextEdit::singleline(&mut self.modelo_b).desired_width(380.0));
+            utsim_posto_ui::util::campo_modelo(ui, &mut self.modelo_b, s.unidade.as_ref(), 380.0);
             if !modelos.is_empty() {
                 egui::ComboBox::from_id_salt("modelos_ergonomia_b")
                     .selected_text("modelos dos postos")
