@@ -89,35 +89,10 @@ impl App {
 
     pub fn draw(&mut self, ui: &mut egui::Ui) {
         self.sessao.atualizar_se_preciso(ui.ctx());
-        egui::Panel::top("navegacao").show(ui, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.strong(crate::TITULO);
-                ui.separator();
-                let abas = [
-                    (Tela::Inicial, "Início"),
-                    (Tela::Modelo, "Modelo"),
-                    (Tela::Ferramentas, "Ferramentas"),
-                    (Tela::Postos, "Postos"),
-                    (Tela::Inventario, "Inventário de riscos"),
-                    (Tela::Matriz, "Matriz"),
-                    (Tela::Exposicao, "Exposição"),
-                    (Tela::Ergonomia, "Ergonomia"),
-                    (Tela::Checklist, "Checklist"),
-                    (Tela::Epi, "EPI"),
-                    (Tela::Incidentes, "Incidentes"),
-                    (Tela::Relatorio, "Relatório"),
-                ];
-                let aberta = self.sessao.unidade.is_some();
-                for (t, nome) in abas {
-                    let modelo_aberto = t == Tela::Modelo && self.modelo.aberto();
-                    ui.add_enabled_ui(aberta || modelo_aberto || t == Tela::Inicial, |ui| {
-                        if ui.selectable_label(self.tela == t, nome).clicked() {
-                            self.tela = t;
-                        }
-                    });
-                }
-            });
-        });
+        egui::Panel::left("navegacao")
+            .default_size(utsim_ui_tema::navegacao::LARGURA)
+            .resizable(false)
+            .show(ui, |ui| self.barra_lateral(ui));
         // O aviso legal aparece em TODAS as telas.
         egui::Panel::bottom("aviso_legal").show(ui, |ui| {
             ui.colored_label(egui::Color32::from_rgb(230, 160, 40), crate::AVISO_LEGAL);
@@ -136,6 +111,11 @@ impl App {
                 self.ferramentas.ui(ui, &mut self.sessao);
                 return;
             }
+            if self.tela == Tela::Modelo {
+                // Três zonas, cada uma com a própria rolagem.
+                self.modelo.ui(ui, &mut self.sessao);
+                return;
+            }
             if self.tela == Tela::Inicial {
                 self.abertura(ui);
                 return;
@@ -143,8 +123,7 @@ impl App {
             egui::ScrollArea::both().show(ui, |ui| match self.tela {
                 Tela::Inicial => {}
                 Tela::Postos => self.postos.ui(ui, &mut self.sessao),
-                Tela::Modelo => self.modelo.ui(ui, &mut self.sessao),
-                Tela::Ferramentas => {}
+                Tela::Modelo | Tela::Ferramentas => {}
                 Tela::Inventario => self.inventario.ui(ui, &mut self.sessao),
                 Tela::Matriz => self.matriz.ui(ui, &mut self.sessao),
                 Tela::Exposicao => self.exposicao.ui(ui, &mut self.sessao),
@@ -159,6 +138,63 @@ impl App {
 }
 
 impl App {
+    /// A barra lateral: o app, a unidade aberta e as telas em grupos. Sem unidade, só o
+    /// Início fica ativo (e o Modelo, quando há um modelo aberto pelo 3D).
+    fn barra_lateral(&mut self, ui: &mut egui::Ui) {
+        use utsim_ui_tema::navegacao::{Barra, Grupo, Item};
+        let sem = self.sessao.unidade.is_none();
+        let motivo = "Abra uma unidade no Início.";
+        let it = |t, nome| Item::novo(t, nome).bloqueado_se(sem, motivo);
+        let grupos = [
+            Grupo {
+                titulo: None,
+                itens: vec![Item::novo(Tela::Inicial, "Início")],
+            },
+            Grupo {
+                titulo: Some("Modelo e postos"),
+                itens: vec![
+                    Item::novo(Tela::Modelo, "Modelo")
+                        .bloqueado_se(sem && !self.modelo.aberto(), motivo),
+                    it(Tela::Postos, "Postos"),
+                ],
+            },
+            Grupo {
+                titulo: Some("Ferramentas e estudos"),
+                itens: vec![it(Tela::Ferramentas, "Ferramentas")],
+            },
+            Grupo {
+                titulo: Some("Análises"),
+                itens: vec![
+                    it(Tela::Exposicao, "Exposição"),
+                    it(Tela::Ergonomia, "Ergonomia"),
+                    it(Tela::Matriz, "Matriz de risco"),
+                ],
+            },
+            Grupo {
+                titulo: Some("Ações e registros"),
+                itens: vec![
+                    it(Tela::Inventario, "Inventário de riscos"),
+                    it(Tela::Checklist, "Checklist"),
+                    it(Tela::Epi, "EPI"),
+                    it(Tela::Incidentes, "Incidentes"),
+                ],
+            },
+            Grupo {
+                titulo: Some("Relatório"),
+                itens: vec![it(Tela::Relatorio, "Relatório")],
+            },
+        ];
+        let linhas = utsim_posto_ui::linhas_da_barra(&self.sessao, &self.modelo);
+        Barra {
+            nome: crate::TITULO,
+            cor: MARCA.cor,
+            icone: MARCA.icone,
+            linhas: &linhas,
+            grupos: &grupos,
+        }
+        .mostrar(ui, &mut self.tela);
+    }
+
     /// A abertura: abrir ou criar a unidade, os recentes e onde fica salvo.
     fn abertura(&mut self, ui: &mut egui::Ui) {
         match self.inicial.ui(ui, &mut self.sessao, &MARCA) {
