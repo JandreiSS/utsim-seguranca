@@ -121,7 +121,14 @@ impl TelaMatriz {
         ui.separator();
         ui.horizontal(|ui| {
             ui.label("Arquivo CSV:");
-            ui.add(egui::TextEdit::singleline(&mut self.arquivo_csv).desired_width(420.0));
+            utsim_ui_tema::arquivos::campo(
+                ui,
+                &mut self.arquivo_csv,
+                utsim_ui_tema::arquivos::Tipo::Abrir,
+                "Escolha o arquivo CSV",
+                &[utsim_ui_tema::arquivos::CSV],
+                420.0,
+            );
         });
         let tem_arquivo = !self.arquivo_csv.trim().is_empty();
         let mut importar = false;

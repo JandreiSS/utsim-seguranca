@@ -24,7 +24,7 @@ utsim-diagram.workspace = true
 serde_json.workspace = true
 utsim-model.workspace = true
 utsim-edit.workspace = true
-utsim-ui-tema.workspace = true
+utsim-ui-tema = { workspace = true, features = ["familia", "arquivos"] }
 # Same egui as the other apps, so Cargo.lock keeps one egui. Light: glow renderer only.
 eframe = { version = "=0.36.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 # Pareto and monthly control chart; the same version as the other apps.

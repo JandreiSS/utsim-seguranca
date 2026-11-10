@@ -617,11 +617,17 @@ impl TelaIncidentes {
                 VERMELHO,
                 "A pasta restrita não existe ou não abre para você.",
             );
-            campo(
-                ui,
-                "Pasta fora da unidade (vazio: dentro da unidade)",
-                &mut self.caminho_restrita,
-            );
+            ui.horizontal(|ui| {
+                ui.label("Pasta fora da unidade (vazio: dentro da unidade)");
+                utsim_ui_tema::arquivos::campo(
+                    ui,
+                    &mut self.caminho_restrita,
+                    utsim_ui_tema::arquivos::Tipo::Pasta,
+                    "Escolha a pasta restrita",
+                    &[],
+                    360.0,
+                );
+            });
             campo(
                 ui,
                 "Quem pode gravar (autores separados por vírgula; vazio: só você)",

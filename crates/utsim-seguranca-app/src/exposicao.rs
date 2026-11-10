@@ -100,7 +100,7 @@ impl TelaExposicao {
         };
         ui.horizontal(|ui| {
             ui.label("Modelo (.ron):");
-            ui.add(egui::TextEdit::singleline(&mut self.modelo).desired_width(420.0));
+            utsim_posto_ui::util::campo_modelo(ui, &mut self.modelo, s.unidade.as_ref(), 420.0);
             if !modelos.is_empty() {
                 egui::ComboBox::from_id_salt("modelos_exposicao")
                     .selected_text("modelos dos postos")

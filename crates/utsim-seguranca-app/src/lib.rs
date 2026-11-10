@@ -21,7 +21,7 @@ pub use utsim_seguranca_core::AVISO_LEGAL;
 pub const TITULO: &str = "UTSim Segurança do Trabalho";
 /// A cor do app (capa dos relatórios e launcher).
 pub const COR: &str = "#F28C1E";
-/// O ícone do app em PNG (capa do relatório em HTML).
+/// O ícone do app (o mesmo do lançador), na janela, na abertura e na capa dos relatórios.
 pub const ICONE: &[u8] = include_bytes!("../../../assets/icone/familia/seguranca_256.png");
 
 /// A identidade do app nos relatórios dos estudos.
