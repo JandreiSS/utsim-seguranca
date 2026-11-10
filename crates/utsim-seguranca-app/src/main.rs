@@ -48,6 +48,7 @@ fn main() -> ExitCode {
         options,
         Box::new(|cc| {
             utsim_ui_tema::install(&cc.egui_ctx);
+            utsim_ui_tema::usar_cor_do_app(&cc.egui_ctx, utsim_seguranca_app::app::MARCA.cor);
             let mut app = App::new(utsim_posto_ui::sessao::arquivo_padrao());
             if !pedido.vazio() {
                 app.atender(&pedido);
