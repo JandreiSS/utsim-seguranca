@@ -46,6 +46,8 @@ pub struct App {
     pub epi: TelaEpi,
     pub incidentes: TelaIncidentes,
     pub relatorio: TelaRelatorio,
+    /// O pedido de outro app (`--utsim-pedido`), respondido ao fechar.
+    pub pedido: Option<utsim_posto_ui::abrir::Atendido>,
 }
 
 impl App {
@@ -53,6 +55,7 @@ impl App {
         App {
             sessao: Sessao::nova(config),
             tela: Tela::Inicial,
+            pedido: None,
             inicial: TelaInicial::default(),
             postos: TelaPostos::default(),
             modelo: crate::modelo::tela(),
@@ -75,12 +78,14 @@ impl App {
     /// Atende o pedido da linha de comando (`--utsim-abrir`, seção 2.2 do plano de
     /// integração): o modelo no nó, ou os dados numa ferramenta.
     pub fn atender(&mut self, a: &utsim_posto_ui::Abrir) {
-        match utsim_posto_ui::abrir::atender(
+        let destino = utsim_posto_ui::abrir::atender(
             a,
             &mut self.sessao,
             &mut self.modelo,
             &mut self.ferramentas,
-        ) {
+        );
+        self.pedido = utsim_posto_ui::abrir::Atendido::de(a, &self.ferramentas);
+        match destino {
             Some(utsim_posto_ui::Destino::Modelo) => self.tela = Tela::Modelo,
             Some(utsim_posto_ui::Destino::Ferramentas) => self.tela = Tela::Ferramentas,
             None => {}
@@ -234,5 +239,15 @@ impl eframe::App for App {
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         self.ferramentas.gravar_pendente(&mut self.sessao);
+        if let Some(p) = &self.pedido
+            && let Some(Err(e)) = p.responder(
+                &self.ferramentas,
+                &self.sessao,
+                "seguranca",
+                env!("CARGO_PKG_VERSION"),
+            )
+        {
+            eprintln!("resposta do pedido: {e}");
+        }
     }
 }

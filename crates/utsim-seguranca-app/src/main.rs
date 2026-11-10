@@ -18,7 +18,8 @@ fn main() -> ExitCode {
                 println!(
                     "utsim-seguranca\n  abre a janela do UTSim Segurança do Trabalho
   --utsim-abrir=<modelo.ron> --utsim-no=<nome>   abre o modelo no nó
-  --utsim-abrir=<dados.csv|.xlsx> --utsim-ferramenta=<chave>   abre os dados numa ferramenta"
+  --utsim-abrir=<dados.csv|.xlsx> --utsim-ferramenta=<chave>   abre os dados numa ferramenta
+  --utsim-pedido=<id.utsim-pedido.json>   atende o pedido de outro app e responde ao fechar"
                 );
                 return ExitCode::SUCCESS;
             }
