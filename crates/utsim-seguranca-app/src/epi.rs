@@ -1,5 +1,6 @@
 //! Tela do cadastro de equipamentos de proteção individual e das pendências.
 
+use crate::texto::{fx, tx, vx};
 use eframe::egui::{self, Color32};
 use utsim_model::quality::PPE_NAMES;
 use utsim_posto_ui::{Sessao, util};
@@ -36,7 +37,7 @@ impl TelaEpi {
             return false;
         };
         if e.tipo.trim().is_empty() {
-            s.falhar("Informe o tipo do equipamento.");
+            s.falhar(tx("epi-informe_o_tipo_do_equipamento"));
             self.edicao = Some(e);
             return false;
         }
@@ -44,31 +45,38 @@ impl TelaEpi {
             return false;
         };
         let r = u.gravar(EPIS, &e.id, &e);
-        s.resultado(r, "EPI gravado.").is_some()
+        s.resultado(r, tx("epi-epi_gravado")).is_some()
     }
 
     pub fn remover(&mut self, s: &mut Sessao, id: &str) {
         if let Some(u) = s.unidade.as_mut() {
             let r = u.remover(EPIS, id);
-            s.resultado(r, "EPI removido.");
+            s.resultado(r, tx("epi-epi_removido"));
         }
     }
 
     pub fn ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         if s.unidade.is_none() {
-            ui.label("Abra uma unidade na tela inicial.");
+            ui.label(tx("epi-abra_uma_unidade_na_tela"));
             return;
         }
-        ui.heading("Equipamentos de proteção individual");
+        ui.heading(tx("epi-equipamentos_de_protecao_individual"));
         let hoje = util::hoje();
         let lista = Self::lista(s);
         if lista.is_empty() {
-            ui.weak("Nenhum EPI cadastrado.");
+            ui.weak(tx("epi-nenhum_epi_cadastrado"));
         } else {
             let mut editar = None;
             let mut tirar = None;
             egui::Grid::new("grade_epi").striped(true).show(ui, |ui| {
-                for c in ["Tipo", "Uso", "CA", "Validade do CA", "Troca (dias)", ""] {
+                for c in [
+                    tx("epi-tipo"),
+                    tx("epi-uso"),
+                    tx("epi-ca"),
+                    tx("epi-validade_do_ca"),
+                    tx("epi-troca_dias"),
+                    "",
+                ] {
                     ui.strong(c);
                 }
                 ui.end_row();
@@ -77,16 +85,19 @@ impl TelaEpi {
                     ui.label(&e.uso);
                     ui.label(&e.ca);
                     if e.vencido(&hoje) {
-                        ui.colored_label(VERMELHO, format!("{} (vencido)", e.validade_ca));
+                        ui.colored_label(
+                            VERMELHO,
+                            fx("epi-vencido", &[("validade_ca", vx(&e.validade_ca))]),
+                        );
                     } else {
                         ui.label(&e.validade_ca);
                     }
                     ui.label(e.troca_dias.map_or("–".into(), |d| d.to_string()));
                     ui.horizontal(|ui| {
-                        if ui.small_button("Editar").clicked() {
+                        if ui.small_button(tx("epi-editar")).clicked() {
                             editar = Some(e.clone());
                         }
-                        if ui.small_button("Remover").clicked() {
+                        if ui.small_button(tx("epi-remover")).clicked() {
                             tirar = Some(e.id.clone());
                         }
                     });
@@ -100,14 +111,14 @@ impl TelaEpi {
                 self.remover(s, &id);
             }
         }
-        if ui.button("Novo EPI").clicked() {
+        if ui.button(tx("epi-novo_epi")).clicked() {
             self.edicao = Some(Epi::default());
         }
         let (mut gravar, mut cancelar) = (false, false);
         if let Some(e) = self.edicao.as_mut() {
             ui.group(|ui| {
                 ui.horizontal(|ui| {
-                    ui.label("Tipo");
+                    ui.label(tx("epi-tipo"));
                     egui::ComboBox::from_id_salt("tipo_epi")
                         .selected_text(if e.tipo.is_empty() {
                             "escolha"
@@ -119,26 +130,26 @@ impl TelaEpi {
                                 ui.selectable_value(&mut e.tipo, n.to_string(), *n);
                             }
                         });
-                    ui.label("ou outro");
+                    ui.label(tx("epi-ou_outro"));
                     ui.add(egui::TextEdit::singleline(&mut e.tipo).desired_width(140.0));
                 });
                 ui.horizontal(|ui| {
-                    ui.label("Descrição");
+                    ui.label(tx("epi-descricao"));
                     ui.add(egui::TextEdit::singleline(&mut e.descricao).desired_width(300.0));
                 });
                 ui.horizontal(|ui| {
-                    ui.label("Uso (contra o quê e quando)");
+                    ui.label(tx("epi-uso_contra_o_que_e"));
                     ui.add(egui::TextEdit::singleline(&mut e.uso).desired_width(300.0));
                 });
                 ui.horizontal(|ui| {
-                    ui.label("CA (número digitado, o programa não confere)");
+                    ui.label(tx("epi-ca_numero_digitado_o_programa"));
                     ui.add(egui::TextEdit::singleline(&mut e.ca).desired_width(100.0));
-                    ui.label("Validade do CA (AAAA-MM-DD)");
+                    ui.label(tx("epi-validade_do_ca_aaaa_mm"));
                     ui.add(egui::TextEdit::singleline(&mut e.validade_ca).desired_width(100.0));
                 });
                 ui.horizontal(|ui| {
                     let mut tem = e.troca_dias.is_some();
-                    ui.checkbox(&mut tem, "intervalo de troca (dias)");
+                    ui.checkbox(&mut tem, tx("epi-intervalo_de_troca_dias"));
                     match (tem, e.troca_dias.is_some()) {
                         (true, false) => e.troca_dias = Some(180),
                         (false, true) => e.troca_dias = None,
@@ -149,8 +160,8 @@ impl TelaEpi {
                     }
                 });
                 ui.horizontal(|ui| {
-                    gravar = ui.button("Gravar EPI").clicked();
-                    cancelar = ui.button("Cancelar").clicked();
+                    gravar = ui.button(tx("epi-gravar_epi")).clicked();
+                    cancelar = ui.button(tx("epi-cancelar")).clicked();
                 });
             });
         }
@@ -162,10 +173,10 @@ impl TelaEpi {
         }
 
         ui.separator();
-        ui.strong("Pendências");
+        ui.strong(tx("epi-pendencias"));
         let p = Self::pendencias(s);
         if p.is_empty() {
-            ui.label("Nenhuma pendência.");
+            ui.label(tx("epi-nenhuma_pendencia"));
         }
         for t in &p {
             ui.colored_label(VERMELHO, t);

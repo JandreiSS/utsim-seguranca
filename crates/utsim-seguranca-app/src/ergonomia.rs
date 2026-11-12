@@ -1,6 +1,7 @@
 //! Tela de ergonomia: estudo de tempos de um modelo, marcações de postura, carga, pega e
 //! vibração por elemento, nota ao vivo com o método da unidade e comparação de dois modelos.
 
+use crate::texto::{dx, fx, tx, vx};
 use eframe::egui;
 use utsim_diagram::rastro::capturar;
 use utsim_diagram::tempos::{Estudo, Opcoes, estudar};
@@ -97,7 +98,7 @@ fn estudo_em_fio(
             return false;
         }
     };
-    s.avisar("Rodando o estudo de tempos...");
+    s.avisar(tx("ergonomia-rodando_o_estudo_de_tempos"));
     trabalho.iniciar(move || {
         let r = capturar(&modelo, 0)?;
         estudar(
@@ -192,7 +193,10 @@ impl TelaErgonomia {
                     return;
                 }
                 s.mudou();
-                s.avisar(format!("Método '{}' gravado na unidade.", m.nome));
+                s.avisar(fx(
+                    "ergonomia-metodo_gravado_na_unidade",
+                    &[("nome", vx(&m.nome))],
+                ));
                 self.metodo = Some(m);
             }
             Err(e) => self.erro_metodo = e,
@@ -201,10 +205,10 @@ impl TelaErgonomia {
 
     pub fn ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         if s.unidade.is_none() {
-            ui.label("Abra uma unidade na tela inicial.");
+            ui.label(tx("ergonomia-abra_uma_unidade_na_tela"));
             return;
         }
-        ui.heading("Ergonomia");
+        ui.heading(tx("ergonomia-ergonomia"));
         ui.colored_label(egui::Color32::from_rgb(230, 160, 40), AVISO_NR17);
         if self.trabalho.sondar(ui.ctx()) {
             match self.trabalho.erro() {
@@ -213,7 +217,7 @@ impl TelaErgonomia {
                     if let (Some(u), Some(e)) = (s.unidade.as_ref(), self.trabalho.ok()) {
                         self.marcacoes = carregar_marcacoes(u, &e.modelo);
                     }
-                    s.avisar("Estudo de tempos pronto.");
+                    s.avisar(tx("ergonomia-estudo_de_tempos_pronto"));
                 }
             }
         }
@@ -224,7 +228,7 @@ impl TelaErgonomia {
                     if let (Some(u), Some(e)) = (s.unidade.as_ref(), self.trabalho_b.ok()) {
                         self.marcacoes_b = carregar_marcacoes(u, &e.modelo);
                     }
-                    s.avisar("Estudo do segundo modelo pronto.");
+                    s.avisar(tx("ergonomia-estudo_do_segundo_modelo_pronto"));
                 }
             }
         }
@@ -243,18 +247,18 @@ impl TelaErgonomia {
             v
         };
         ui.horizontal(|ui| {
-            ui.label("Modelo (.ron):");
+            ui.label(tx("ergonomia-modelo_ron"));
             utsim_posto_ui::util::campo_modelo(ui, &mut self.modelo, s.unidade.as_ref(), 380.0);
             if !modelos.is_empty() {
                 egui::ComboBox::from_id_salt("modelos_ergonomia")
-                    .selected_text("modelos dos postos")
+                    .selected_text(tx("ergonomia-modelos_dos_postos"))
                     .show_ui(ui, |ui| {
                         for m in &modelos {
                             ui.selectable_value(&mut self.modelo, m.clone(), m);
                         }
                     });
             }
-            ui.label("Unidade de tempo:");
+            ui.label(tx("ergonomia-unidade_de_tempo"));
             egui::ComboBox::from_id_salt("unidade_tempo_ergonomia")
                 .selected_text(self.unidade_tempo.clone())
                 .show_ui(ui, |ui| {
@@ -264,7 +268,7 @@ impl TelaErgonomia {
                 });
             let livre = !self.trabalho.ocupado() && !self.modelo.trim().is_empty();
             if ui
-                .add_enabled(livre, egui::Button::new("Rodar estudo"))
+                .add_enabled(livre, egui::Button::new(tx("ergonomia-rodar_estudo")))
                 .clicked()
             {
                 self.rodar(s);
@@ -274,17 +278,17 @@ impl TelaErgonomia {
             }
         });
         ui.horizontal(|ui| {
-            ui.label(format!("Método: {}", metodo.nome));
-            ui.label("Importar método (CSV):");
+            ui.label(fx("ergonomia-metodo", &[("nome", vx(&metodo.nome))]));
+            ui.label(tx("ergonomia-importar_metodo_csv"));
             utsim_ui_tema::arquivos::campo(
                 ui,
                 &mut self.arquivo_metodo,
                 utsim_ui_tema::arquivos::Tipo::Abrir,
-                "Escolha o arquivo CSV",
+                tx("ergonomia-escolha_o_arquivo_csv"),
                 &[utsim_ui_tema::arquivos::CSV],
                 300.0,
             );
-            if ui.button("Importar").clicked() {
+            if ui.button(tx("ergonomia-importar")).clicked() {
                 self.importar_metodo(s);
             }
         });
@@ -299,35 +303,41 @@ impl TelaErgonomia {
         };
         let (nome_modelo, unidade) = (estudo.modelo.clone(), estudo.unidade.clone());
         ui.separator();
-        ui.strong(format!(
-            "Modelo {nome_modelo} · tempos em {unidade} · Origem: Simulado"
+        ui.strong(fx(
+            "ergonomia-modelo_tempos_em_origem_simulado",
+            &[("nome_modelo", vx(&nome_modelo)), ("unidade", vx(&unidade))],
         ));
         let notas = avaliar(estudo, &self.marcacoes, &metodo);
         if notas.is_empty() {
-            ui.label("O estudo não achou operador com ciclo regular neste modelo.");
+            ui.label(tx("ergonomia-o_estudo_nao_achou_operador"));
         }
         let mut mudancas: Vec<Marcacao> = Vec::new();
         for p in &notas {
             ui.add_space(6.0);
-            ui.strong(format!(
-                "{}: nota {:.1} ({}), média ponderada {:.1}",
-                p.ator, p.nota, p.faixa, p.media_ponderada
+            ui.strong(fx(
+                "ergonomia-nota_media_ponderada",
+                &[
+                    ("ator", vx(&p.ator)),
+                    ("nota", dx(format!("{:.1}", p.nota))),
+                    ("faixa", vx(&p.faixa)),
+                    ("media_ponderada", dx(format!("{:.1}", p.media_ponderada))),
+                ],
             ));
             egui::Grid::new(("ergo", &p.ator))
                 .striped(true)
                 .show(ui, |ui| {
                     for c in [
-                        "Elemento",
-                        "Por hora",
-                        "Tronco",
-                        "Braços",
-                        "Pescoço",
-                        "Pernas",
-                        "Carga (kg)",
-                        "Pega",
-                        "Vibração",
-                        "Nota",
-                        "Faixa",
+                        tx("ergonomia-elemento"),
+                        tx("ergonomia-por_hora"),
+                        tx("ergonomia-tronco"),
+                        tx("ergonomia-bracos"),
+                        tx("ergonomia-pescoco"),
+                        tx("ergonomia-pernas"),
+                        tx("ergonomia-carga_kg"),
+                        tx("ergonomia-pega"),
+                        tx("ergonomia-vibracao"),
+                        tx("ergonomia-nota"),
+                        tx("ergonomia-faixa"),
                     ] {
                         ui.strong(c);
                     }
@@ -375,22 +385,27 @@ impl TelaErgonomia {
         let mut gravar = false;
         let mut gravar_html = false;
         ui.horizontal(|ui| {
-            gravar = ui.button("Gravar marcações").clicked();
-            gravar_html = ui.button("Gravar HTML de ergonomia").clicked();
+            gravar = ui.button(tx("ergonomia-gravar_marcacoes")).clicked();
+            gravar_html = ui
+                .button(tx("ergonomia-gravar_html_de_ergonomia"))
+                .clicked();
         });
         if gravar {
             let n = self.gravar_marcacoes(s);
-            s.avisar(format!("{n} marcações gravadas na unidade."));
+            s.avisar(fx(
+                "ergonomia-marcacoes_gravadas_na_unidade",
+                &[("n", vx(&n))],
+            ));
         }
         // Comparação com um segundo modelo.
         ui.separator();
-        ui.strong("Comparar com outro modelo");
+        ui.strong(tx("ergonomia-comparar_com_outro_modelo"));
         ui.horizontal(|ui| {
-            ui.label("Segundo modelo (.ron):");
+            ui.label(tx("ergonomia-segundo_modelo_ron"));
             utsim_posto_ui::util::campo_modelo(ui, &mut self.modelo_b, s.unidade.as_ref(), 380.0);
             if !modelos.is_empty() {
                 egui::ComboBox::from_id_salt("modelos_ergonomia_b")
-                    .selected_text("modelos dos postos")
+                    .selected_text(tx("ergonomia-modelos_dos_postos"))
                     .show_ui(ui, |ui| {
                         for m in &modelos {
                             ui.selectable_value(&mut self.modelo_b, m.clone(), m);
@@ -399,7 +414,7 @@ impl TelaErgonomia {
             }
             let livre = !self.trabalho_b.ocupado() && !self.modelo_b.trim().is_empty();
             if ui
-                .add_enabled(livre, egui::Button::new("Rodar e comparar"))
+                .add_enabled(livre, egui::Button::new(tx("ergonomia-rodar_e_comparar")))
                 .clicked()
             {
                 self.rodar_b(s);
@@ -420,11 +435,11 @@ impl TelaErgonomia {
                 .striped(true)
                 .show(ui, |ui| {
                     for c in [
-                        "Posto",
-                        "Nota antes",
-                        "Nota depois",
-                        "Padrão antes",
-                        "Padrão depois",
+                        tx("ergonomia-posto"),
+                        tx("ergonomia-nota_antes"),
+                        tx("ergonomia-nota_depois"),
+                        tx("ergonomia-padrao_antes"),
+                        tx("ergonomia-padrao_depois"),
                     ] {
                         ui.strong(c);
                     }
@@ -444,7 +459,10 @@ impl TelaErgonomia {
             let doc = html(&nome_modelo, &metodo, &notas, &comparacao);
             if let Some(u) = s.unidade.as_ref() {
                 match u.gravar_relatorio("ergonomia.html", doc.as_bytes()) {
-                    Ok(p) => s.avisar(format!("Relatório gravado em {}", p.display())),
+                    Ok(p) => s.avisar(fx(
+                        "ergonomia-relatorio_gravado_em",
+                        &[("p", vx(&p.display()))],
+                    )),
                     Err(e) => s.falhar(e.to_string()),
                 }
             }

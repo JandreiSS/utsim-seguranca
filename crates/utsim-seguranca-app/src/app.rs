@@ -1,5 +1,6 @@
 //! A janela: telas e o aviso legal fixo no rodapé.
 
+use crate::texto::tx;
 use std::path::PathBuf;
 
 use eframe::egui;
@@ -52,8 +53,18 @@ pub struct App {
 
 impl App {
     pub fn new(config: Option<PathBuf>) -> App {
+        let sessao = Sessao::nova(config);
+        // A língua guardada; sem ela, a de agora (a do sistema, posta pelo `main`).
+        if let Some(i) = sessao
+            .config
+            .idioma
+            .as_deref()
+            .and_then(utsim_idiomas::Idioma::de_codigo)
+        {
+            utsim_idiomas::definir(i);
+        }
         App {
-            sessao: Sessao::nova(config),
+            sessao,
             tela: Tela::Inicial,
             pedido: None,
             inicial: TelaInicial::default(),
@@ -148,61 +159,69 @@ impl App {
     fn barra_lateral(&mut self, ui: &mut egui::Ui) {
         use utsim_ui_tema::navegacao::{Barra, Grupo, Item};
         let sem = self.sessao.unidade.is_none();
-        let motivo = "Abra uma unidade no Início.";
+        let motivo = tx("app-abra_uma_unidade_no_inicio");
         let it = |t, nome| Item::novo(t, nome).bloqueado_se(sem, motivo);
         let grupos = [
             Grupo {
                 titulo: None,
-                itens: vec![Item::novo(Tela::Inicial, "Início")],
+                itens: vec![Item::novo(Tela::Inicial, tx("app-inicio"))],
             },
             Grupo {
-                titulo: Some("Modelo e postos"),
+                titulo: Some(tx("app-modelo_e_postos")),
                 itens: vec![
-                    Item::novo(Tela::Modelo, "Modelo")
+                    Item::novo(Tela::Modelo, tx("app-modelo"))
                         .bloqueado_se(sem && !self.modelo.aberto(), motivo),
-                    it(Tela::Postos, "Postos"),
+                    it(Tela::Postos, tx("app-postos")),
                 ],
             },
             Grupo {
-                titulo: Some("Ferramentas e estudos"),
-                itens: vec![it(Tela::Ferramentas, "Ferramentas")],
+                titulo: Some(tx("app-ferramentas_e_estudos")),
+                itens: vec![it(Tela::Ferramentas, tx("app-ferramentas"))],
             },
             Grupo {
-                titulo: Some("Análises"),
+                titulo: Some(tx("app-analises")),
                 itens: vec![
-                    it(Tela::Exposicao, "Exposição"),
-                    it(Tela::Ergonomia, "Ergonomia"),
-                    it(Tela::Matriz, "Matriz de risco"),
+                    it(Tela::Exposicao, tx("app-exposicao")),
+                    it(Tela::Ergonomia, tx("app-ergonomia")),
+                    it(Tela::Matriz, tx("app-matriz_de_risco")),
                 ],
             },
             Grupo {
-                titulo: Some("Ações e registros"),
+                titulo: Some(tx("app-acoes_e_registros")),
                 itens: vec![
-                    it(Tela::Inventario, "Inventário de riscos"),
-                    it(Tela::Checklist, "Checklist"),
-                    it(Tela::Epi, "EPI"),
-                    it(Tela::Incidentes, "Incidentes"),
+                    it(Tela::Inventario, tx("app-inventario_de_riscos")),
+                    it(Tela::Checklist, tx("app-checklist")),
+                    it(Tela::Epi, tx("app-epi")),
+                    it(Tela::Incidentes, tx("app-incidentes")),
                 ],
             },
             Grupo {
-                titulo: Some("Relatório"),
-                itens: vec![it(Tela::Relatorio, "Relatório")],
+                titulo: Some(tx("app-relatorio")),
+                itens: vec![it(Tela::Relatorio, tx("app-relatorio"))],
             },
         ];
         let linhas = utsim_posto_ui::linhas_da_barra(&self.sessao, &self.modelo);
         Barra {
             nome: crate::TITULO,
-            cor: MARCA.cor,
-            icone: MARCA.icone,
+            cor: COR_APP,
+            icone: Some(crate::ICONE),
             linhas: &linhas,
             grupos: &grupos,
         }
         .mostrar(ui, &mut self.tela);
+        ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
+            let mut i = utsim_idiomas::atual();
+            if utsim_idiomas::seletor(ui, "idioma", &mut i) {
+                utsim_idiomas::definir(i);
+                self.sessao.config.idioma = Some(i.codigo().to_string());
+                self.sessao.gravar_config();
+            }
+        });
     }
 
     /// A abertura: abrir ou criar a unidade, os recentes e onde fica salvo.
     fn abertura(&mut self, ui: &mut egui::Ui) {
-        match self.inicial.ui(ui, &mut self.sessao, &MARCA) {
+        match self.inicial.ui(ui, &mut self.sessao, &marca()) {
             Some(Saida::Aberta | Saida::Continuar) => {
                 self.tela = if self.sessao.tem_modelo() {
                     Tela::Modelo
@@ -222,14 +241,19 @@ impl App {
     }
 }
 
-/// O nome, a cor e o ícone do app na abertura (os mesmos do lançador).
-pub const MARCA: Marca = Marca {
-    nome: crate::TITULO,
-    subtitulo: "Segurança do trabalho",
-    cor: egui::Color32::from_rgb(0xF2, 0x8C, 0x1E),
-    icone: Some(crate::ICONE),
-    modelo: "Abra um arquivo .ron do simulador para ver e editar a segurança de cada nó.",
-};
+/// A cor do app (a mesma do lançador).
+pub const COR_APP: egui::Color32 = egui::Color32::from_rgb(0xF2, 0x8C, 0x1E);
+
+/// O nome, a cor e o ícone do app na abertura (os mesmos do lançador), na língua de agora.
+pub fn marca() -> Marca {
+    Marca {
+        nome: crate::TITULO,
+        subtitulo: tx("app-seguranca_do_trabalho"),
+        cor: COR_APP,
+        icone: Some(crate::ICONE),
+        modelo: tx("app-abra_um_arquivo_ron_do"),
+    }
+}
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {

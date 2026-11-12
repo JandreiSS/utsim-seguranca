@@ -27,7 +27,7 @@ fn abertura_picture() {
     let mut app = App::new(Some(dir.path().join("cfg.json")));
     let ctx = Context::default();
     utsim_ui_tema::install(&ctx);
-    utsim_ui_tema::usar_cor_do_app(&ctx, utsim_seguranca_app::app::MARCA.cor);
+    utsim_ui_tema::usar_cor_do_app(&ctx, utsim_seguranca_app::app::COR_APP);
     let mut cap = Captura::new(ctx, vec2(1440.0, 900.0));
     let img = cap.imagem(3, |ui| app.draw(ui));
     conferir(&img, "seguranca_abertura_primeira_vez");

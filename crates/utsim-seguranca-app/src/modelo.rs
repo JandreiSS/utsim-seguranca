@@ -1,6 +1,7 @@
 //! Aba "Modelo" do UTSim Segurança do Trabalho: edita `ppe` e `safety` de cada nó do
 //! `.ron` do UTSim e mostra ao lado a exposição simulada das pessoas que passam no nó.
 
+use crate::texto::{dx, fx, tx};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -35,14 +36,14 @@ pub fn resumo(modelo: &Model) -> Result<Resumo, String> {
         String::new(),
         vec![
             (
-                "Quase-conflitos (média)".into(),
+                tx("modelo-quase_conflitos_media").into(),
                 format!("{total_quase:.2}"),
             ),
             (
-                "Entradas sem EPI (média)".into(),
+                tx("modelo-entradas_sem_epi_media").into(),
                 format!("{total_sem_epi:.2}"),
             ),
-            ("Origem".into(), "Simulado".into()),
+            (tx("modelo-origem").into(), tx("modelo-simulado").into()),
         ],
     );
     for o in &modelo.objects {
@@ -82,14 +83,24 @@ pub fn resumo(modelo: &Model) -> Result<Resumo, String> {
         let sem_epi: f64 = por_pessoa.values().map(|s| s.sem_epi).sum();
         let mut linhas = vec![(
             DESTAQUE.to_string(),
-            format!("{quase:.2} quase-conflitos, {sem_epi:.2} sem EPI"),
+            fx(
+                "modelo-quase_conflitos_sem_epi",
+                &[
+                    ("quase", dx(format!("{:.2}", quase))),
+                    ("sem_epi", dx(format!("{:.2}", sem_epi))),
+                ],
+            ),
         )];
         linhas.extend(por_pessoa.into_iter().map(|(p, s)| {
             (
                 p,
-                format!(
-                    "{:.1} s em zona, {:.2} entradas sem EPI, {:.2} quase-conflitos",
-                    s.tempo, s.sem_epi, s.quase
+                fx(
+                    "modelo-s_em_zona_entradas_sem",
+                    &[
+                        ("tempo", dx(format!("{:.1}", s.tempo))),
+                        ("sem_epi", dx(format!("{:.2}", s.sem_epi))),
+                        ("quase", dx(format!("{:.2}", s.quase))),
+                    ],
                 ),
             )
         }));

@@ -1,5 +1,6 @@
 //! Tela do inventário de riscos por posto, nas cinco etapas de `ETAPAS`.
 
+use crate::texto::{fx, tx, vx};
 use std::collections::BTreeMap;
 
 use eframe::egui::{self, Color32, RichText};
@@ -87,7 +88,7 @@ fn combo_grupo(ui: &mut egui::Ui, id: impl std::hash::Hash + std::fmt::Debug, g:
 
 fn editor_acao(ui: &mut egui::Ui, a: &mut Acao, atrasada: bool) {
     ui.horizontal(|ui| {
-        ui.label("Hierarquia");
+        ui.label(tx("inventario-hierarquia"));
         egui::ComboBox::from_id_salt(("hier", &a.id, &a.perigo))
             .selected_text(a.hierarquia.nome())
             .show_ui(ui, |ui| {
@@ -95,7 +96,7 @@ fn editor_acao(ui: &mut egui::Ui, a: &mut Acao, atrasada: bool) {
                     ui.selectable_value(&mut a.hierarquia, h, h.nome());
                 }
             });
-        ui.label("Situação");
+        ui.label(tx("inventario-situacao"));
         egui::ComboBox::from_id_salt(("sit", &a.id, &a.perigo))
             .selected_text(a.situacao.nome())
             .show_ui(ui, |ui| {
@@ -103,28 +104,28 @@ fn editor_acao(ui: &mut egui::Ui, a: &mut Acao, atrasada: bool) {
                     ui.selectable_value(&mut a.situacao, x, x.nome());
                 }
             });
-        ui.label("Eficaz");
+        ui.label(tx("inventario-eficaz"));
         let t = match a.eficaz {
-            None => "não verificada",
-            Some(true) => "sim",
-            Some(false) => "não",
+            None => tx("inventario-nao_verificada"),
+            Some(true) => tx("inventario-sim"),
+            Some(false) => tx("inventario-nao"),
         };
         egui::ComboBox::from_id_salt(("efi", &a.id, &a.perigo))
             .selected_text(t)
             .show_ui(ui, |ui| {
-                ui.selectable_value(&mut a.eficaz, None, "não verificada");
-                ui.selectable_value(&mut a.eficaz, Some(true), "sim");
-                ui.selectable_value(&mut a.eficaz, Some(false), "não");
+                ui.selectable_value(&mut a.eficaz, None, tx("inventario-nao_verificada"));
+                ui.selectable_value(&mut a.eficaz, Some(true), tx("inventario-sim"));
+                ui.selectable_value(&mut a.eficaz, Some(false), tx("inventario-nao"));
             });
     });
-    campo(ui, "Descrição", &mut a.descricao);
+    campo(ui, tx("inventario-descricao"), &mut a.descricao);
     ui.horizontal(|ui| {
-        ui.label("Responsável");
+        ui.label(tx("inventario-responsavel"));
         ui.add(egui::TextEdit::singleline(&mut a.responsavel).desired_width(200.0));
-        ui.label("Prazo (AAAA-MM-DD)");
+        ui.label(tx("inventario-prazo_aaaa_mm_dd"));
         ui.add(egui::TextEdit::singleline(&mut a.prazo).desired_width(100.0));
         if atrasada {
-            ui.colored_label(VERMELHO, "ATRASADA");
+            ui.colored_label(VERMELHO, tx("inventario-atrasada"));
         }
     });
 }
@@ -132,13 +133,13 @@ fn editor_acao(ui: &mut egui::Ui, a: &mut Acao, atrasada: bool) {
 impl TelaInventario {
     pub fn ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         let Some(u) = s.unidade.as_ref() else {
-            ui.label("Abra uma unidade na tela inicial.");
+            ui.label(tx("inventario-abra_uma_unidade_na_tela"));
             return;
         };
         let inv = Inventario::ler(u);
-        ui.heading("Inventário de riscos por posto");
+        ui.heading(tx("inventario-inventario_de_riscos_por_posto"));
         if inv.postos.is_empty() {
-            ui.label("A unidade ainda não tem postos. Crie-os na tela Postos.");
+            ui.label(tx("inventario-a_unidade_ainda_nao_tem"));
             return;
         }
         if !inv.postos.iter().any(|p| p.id == self.posto) {
@@ -159,7 +160,7 @@ impl TelaInventario {
             .map(|p| p.nome.clone())
             .unwrap_or_default();
         ui.horizontal(|ui| {
-            ui.label("Posto:");
+            ui.label(tx("inventario-posto"));
             egui::ComboBox::from_id_salt("posto_inventario")
                 .selected_text(&nome_posto)
                 .show_ui(ui, |ui| {
@@ -188,21 +189,29 @@ impl TelaInventario {
         if !sem_acao.is_empty() {
             ui.colored_label(
                 VERMELHO,
-                format!(
-                    "{} perigos acima do nível mais baixo sem ação: {}",
-                    sem_acao.len(),
-                    sem_acao
-                        .iter()
-                        .map(|p| p.descricao.as_str())
-                        .collect::<Vec<_>>()
-                        .join("; ")
+                fx(
+                    "inventario-perigos_acima_do_nivel_mais",
+                    &[
+                        ("sem_acao", vx(&sem_acao.len())),
+                        (
+                            "descricao",
+                            vx(&sem_acao
+                                .iter()
+                                .map(|p| p.descricao.as_str())
+                                .collect::<Vec<_>>()
+                                .join("; ")),
+                        ),
+                    ],
                 ),
             );
         }
         if !atrasadas.is_empty() {
             ui.colored_label(
                 VERMELHO,
-                format!("{} ações atrasadas em {hoje}.", atrasadas.len()),
+                fx(
+                    "inventario-acoes_atrasadas_em",
+                    &[("atrasadas", vx(&atrasadas.len())), ("hoje", vx(&hoje))],
+                ),
             );
         }
         ui.separator();
@@ -228,23 +237,23 @@ impl TelaInventario {
         egui::Grid::new("identificar")
             .num_columns(2)
             .show(ui, |ui| {
-                ui.label("Área");
+                ui.label(tx("inventario-area"));
                 ui.label(&p.area);
                 ui.end_row();
-                ui.label("Descrição");
+                ui.label(tx("inventario-descricao"));
                 ui.label(&p.descricao);
                 ui.end_row();
-                ui.label("Pessoas expostas por turno");
+                ui.label(tx("inventario-pessoas_expostas_por_turno"));
                 ui.label(p.pessoas_expostas.to_string());
                 ui.end_row();
-                ui.label("EPI exigidos");
+                ui.label(tx("inventario-epi_exigidos"));
                 ui.label(p.epi.join(", "));
                 ui.end_row();
-                ui.label("Atividades");
+                ui.label(tx("inventario-atividades"));
                 ui.label(p.atividades.join("; "));
                 ui.end_row();
             });
-        ui.weak("Para mudar estes dados, use a tela Postos.");
+        ui.weak(tx("inventario-para_mudar_estes_dados_use"));
     }
 
     fn etapa_perigos(&mut self, ui: &mut egui::Ui, meus: &[Perigo], cmds: &mut Vec<Cmd>) {
@@ -261,23 +270,23 @@ impl TelaInventario {
                 .id_salt(("perigo1", &p.id))
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.label("Grupo");
+                        ui.label(tx("inventario-grupo"));
                         combo_grupo(ui, ("grupo", &p.id), &mut d.grupo);
                         if !d.origem.is_empty() {
-                            ui.weak(format!("origem: {}", d.origem));
+                            ui.weak(fx("inventario-origem", &[("origem", vx(&d.origem))]));
                         }
                     });
-                    campo(ui, "Descrição", &mut d.descricao);
-                    campo(ui, "Fonte", &mut d.fonte);
-                    campo(ui, "Circunstância", &mut d.circunstancia);
-                    campo(ui, "Possíveis lesões", &mut d.lesoes);
+                    campo(ui, tx("inventario-descricao"), &mut d.descricao);
+                    campo(ui, tx("inventario-fonte"), &mut d.fonte);
+                    campo(ui, tx("inventario-circunstancia"), &mut d.circunstancia);
+                    campo(ui, tx("inventario-possiveis_lesoes"), &mut d.lesoes);
                     botoes_perigo(ui, d, p, cmds);
                 });
         }
         ui.separator();
         match &mut self.novo_perigo {
             None => {
-                if ui.button("Novo perigo").clicked() {
+                if ui.button(tx("inventario-novo_perigo")).clicked() {
                     self.novo_perigo = Some(Perigo {
                         posto: self.posto.clone(),
                         origem: "manual".into(),
@@ -286,28 +295,28 @@ impl TelaInventario {
                 }
             }
             Some(n) => {
-                ui.strong("Novo perigo");
+                ui.strong(tx("inventario-novo_perigo"));
                 ui.horizontal(|ui| {
-                    ui.label("Grupo");
+                    ui.label(tx("inventario-grupo"));
                     combo_grupo(ui, "grupo_novo", &mut n.grupo);
                 });
-                campo(ui, "Descrição", &mut n.descricao);
-                campo(ui, "Fonte", &mut n.fonte);
-                campo(ui, "Circunstância", &mut n.circunstancia);
-                campo(ui, "Possíveis lesões", &mut n.lesoes);
+                campo(ui, tx("inventario-descricao"), &mut n.descricao);
+                campo(ui, tx("inventario-fonte"), &mut n.fonte);
+                campo(ui, tx("inventario-circunstancia"), &mut n.circunstancia);
+                campo(ui, tx("inventario-possiveis_lesoes"), &mut n.lesoes);
                 let mut fechar = false;
                 ui.horizontal(|ui| {
                     if ui
                         .add_enabled(
                             !n.descricao.trim().is_empty(),
-                            egui::Button::new("Gravar perigo"),
+                            egui::Button::new(tx("inventario-gravar_perigo")),
                         )
                         .clicked()
                     {
                         cmds.push(Cmd::GravarPerigo(n.clone()));
                         fechar = true;
                     }
-                    if ui.button("Cancelar").clicked() {
+                    if ui.button(tx("inventario-cancelar")).clicked() {
                         fechar = true;
                     }
                 });
@@ -327,7 +336,7 @@ impl TelaInventario {
     ) {
         let m = &inv.matriz;
         if meus.is_empty() {
-            ui.label("Sem perigos neste posto. Levante-os na etapa 2.");
+            ui.label(tx("inventario-sem_perigos_neste_posto_levante"));
         }
         for p in meus {
             let d = rascunho(&mut self.perigos, &p.id, p);
@@ -336,11 +345,11 @@ impl TelaInventario {
                     ui.strong(&d.descricao);
                     selo(ui, m, d.probabilidade, d.severidade);
                 });
-                campo(ui, "Controles existentes", &mut d.controles);
+                campo(ui, tx("inventario-controles_existentes"), &mut d.controles);
                 ui.horizontal(|ui| {
-                    ui.label("Probabilidade");
+                    ui.label(tx("inventario-probabilidade"));
                     combo_degrau(ui, ("prob", &p.id), &mut d.probabilidade, &m.probabilidade);
-                    ui.label("Severidade");
+                    ui.label(tx("inventario-severidade"));
                     combo_degrau(ui, ("sev", &p.id), &mut d.severidade, &m.severidade);
                 });
                 botoes_perigo(ui, d, p, cmds);
@@ -364,7 +373,7 @@ impl TelaInventario {
                     ui.strong(&p.descricao);
                     selo(ui, m, p.probabilidade, p.severidade);
                     if sem.contains(&p.id.as_str()) {
-                        ui.colored_label(VERMELHO, "SEM AÇÃO");
+                        ui.colored_label(VERMELHO, tx("inventario-sem_acao"));
                     }
                 });
                 for a in inv.acoes_do_perigo(&p.id) {
@@ -375,22 +384,22 @@ impl TelaInventario {
                     editor_acao(ui, d, atrasada);
                     ui.horizontal(|ui| {
                         if ui
-                            .add_enabled(sujo, egui::Button::new("Gravar ação"))
+                            .add_enabled(sujo, egui::Button::new(tx("inventario-gravar_acao")))
                             .clicked()
                         {
                             cmds.push(Cmd::GravarAcao(d.clone()));
                         }
-                        if sujo && ui.button("Descartar mudanças").clicked() {
+                        if sujo && ui.button(tx("inventario-descartar_mudancas")).clicked() {
                             *d = a.clone();
                         }
-                        if ui.button("Remover ação").clicked() {
+                        if ui.button(tx("inventario-remover_acao")).clicked() {
                             cmds.push(Cmd::RemoverAcao(a.id.clone()));
                         }
                     });
                 }
                 match self.novas_acoes.get_mut(&p.id) {
                     None => {
-                        if ui.button("Nova ação").clicked() {
+                        if ui.button(tx("inventario-nova_acao")).clicked() {
                             self.novas_acoes.insert(
                                 p.id.clone(),
                                 Acao {
@@ -402,21 +411,21 @@ impl TelaInventario {
                     }
                     Some(n) => {
                         ui.separator();
-                        ui.strong("Nova ação");
+                        ui.strong(tx("inventario-nova_acao"));
                         editor_acao(ui, n, false);
                         let mut fechar = false;
                         ui.horizontal(|ui| {
                             if ui
                                 .add_enabled(
                                     !n.descricao.trim().is_empty(),
-                                    egui::Button::new("Gravar nova ação"),
+                                    egui::Button::new(tx("inventario-gravar_nova_acao")),
                                 )
                                 .clicked()
                             {
                                 cmds.push(Cmd::GravarAcao(n.clone()));
                                 fechar = true;
                             }
-                            if ui.button("Cancelar").clicked() {
+                            if ui.button(tx("inventario-cancelar")).clicked() {
                                 fechar = true;
                             }
                         });
@@ -442,9 +451,9 @@ impl TelaInventario {
             ui.group(|ui| {
                 ui.horizontal(|ui| {
                     ui.strong(&p.descricao);
-                    ui.label("avaliação inicial:");
+                    ui.label(tx("inventario-avaliacao_inicial"));
                     selo(ui, m, p.probabilidade, p.severidade);
-                    ui.label("nível atual:");
+                    ui.label(tx("inventario-nivel_atual"));
                     let atual = inv.nivel_atual(p);
                     let n = &m.niveis[atual.min(m.niveis.len() - 1)];
                     let cor = util::cor(&n.cor);
@@ -480,15 +489,15 @@ impl TelaInventario {
                     });
                 ui.separator();
                 ui.horizontal(|ui| {
-                    ui.label("Data");
+                    ui.label(tx("inventario-data"));
                     ui.add(egui::TextEdit::singleline(&mut n.data).desired_width(90.0));
-                    ui.label("P");
+                    ui.label(tx("inventario-p"));
                     combo_degrau(ui, ("rp", &p.id), &mut n.probabilidade, &m.probabilidade);
-                    ui.label("S");
+                    ui.label(tx("inventario-s"));
                     combo_degrau(ui, ("rs", &p.id), &mut n.severidade, &m.severidade);
                 });
-                campo(ui, "Nota", &mut n.nota);
-                if ui.button("Registrar reavaliação").clicked() {
+                campo(ui, tx("inventario-nota"), &mut n.nota);
+                if ui.button(tx("inventario-registrar_reavaliacao")).clicked() {
                     cmds.push(Cmd::GravarReav(n.clone()));
                 }
             });
@@ -502,31 +511,33 @@ impl TelaInventario {
         match c {
             Cmd::GravarPerigo(p) => {
                 let r = u.gravar(PERIGOS, &p.id, &p);
-                if let Some(id) = s.resultado(r, "Perigo gravado.") {
+                if let Some(id) = s.resultado(r, tx("inventario-perigo_gravado")) {
                     self.perigos.remove(&id);
                 }
             }
             Cmd::RemoverPerigo(id) => {
                 let r = u.remover(PERIGOS, &id);
-                if s.resultado(r, "Perigo removido.").is_some() {
+                if s.resultado(r, tx("inventario-perigo_removido")).is_some() {
                     self.perigos.remove(&id);
                 }
             }
             Cmd::GravarAcao(a) => {
                 let r = u.gravar(ACOES, &a.id, &a);
-                if let Some(id) = s.resultado(r, "Ação gravada.") {
+                if let Some(id) = s.resultado(r, tx("inventario-acao_gravada")) {
                     self.acoes.remove(&id);
                 }
             }
             Cmd::RemoverAcao(id) => {
                 let r = u.remover(ACOES, &id);
-                if s.resultado(r, "Ação removida.").is_some() {
+                if s.resultado(r, tx("inventario-acao_removida")).is_some() {
                     self.acoes.remove(&id);
                 }
             }
             Cmd::GravarReav(r0) => {
                 let r = u.gravar(REAVALIACOES, "", &r0);
-                if s.resultado(r, "Reavaliação registrada.").is_some() {
+                if s.resultado(r, tx("inventario-reavaliacao_registrada"))
+                    .is_some()
+                {
                     self.novas_reav.remove(&r0.perigo);
                 }
             }
@@ -557,15 +568,15 @@ fn botoes_perigo(ui: &mut egui::Ui, d: &mut Perigo, original: &Perigo, cmds: &mu
     let sujo = d != original;
     ui.horizontal(|ui| {
         if ui
-            .add_enabled(sujo, egui::Button::new("Gravar perigo"))
+            .add_enabled(sujo, egui::Button::new(tx("inventario-gravar_perigo")))
             .clicked()
         {
             cmds.push(Cmd::GravarPerigo(d.clone()));
         }
-        if sujo && ui.button("Descartar mudanças").clicked() {
+        if sujo && ui.button(tx("inventario-descartar_mudancas")).clicked() {
             *d = original.clone();
         }
-        if ui.button("Remover perigo").clicked() {
+        if ui.button(tx("inventario-remover_perigo")).clicked() {
             cmds.push(Cmd::RemoverPerigo(original.id.clone()));
         }
     });

@@ -1,6 +1,7 @@
 //! Tela do checklist de proteção de máquina: inspeção item a item, modelos próprios ou
 //! importados por CSV e as não conformidades levadas ao inventário de riscos.
 
+use crate::texto::{fx, tx, vx};
 use eframe::egui::{self, Color32};
 use utsim_posto_ui::{Sessao, util};
 use utsim_seguranca_core::checklist::{
@@ -37,10 +38,10 @@ impl Default for TelaChecklist {
 
 fn nome_resposta(r: Resposta) -> &'static str {
     match r {
-        Resposta::SemResposta => "sem resposta",
-        Resposta::Conforme => "conforme",
-        Resposta::NaoConforme => "não conforme",
-        Resposta::NaoSeAplica => "não se aplica",
+        Resposta::SemResposta => tx("checklist-sem_resposta"),
+        Resposta::Conforme => tx("checklist-conforme"),
+        Resposta::NaoConforme => tx("checklist-nao_conforme"),
+        Resposta::NaoSeAplica => tx("checklist-nao_se_aplica"),
     }
 }
 
@@ -78,15 +79,15 @@ impl TelaChecklist {
             }
         };
         let nome = if self.nome_modelo.trim().is_empty() {
-            "Checklist da empresa".to_string()
+            tx("checklist-checklist_da_empresa").to_string()
         } else {
             self.nome_modelo.trim().to_string()
         };
         match Modelo::de_csv(&nome, &texto) {
             Ok(m) => {
-                s.avisar(format!(
-                    "{} item(ns) lido(s). Guarde o modelo para usá-lo de novo.",
-                    m.itens.len()
+                s.avisar(fx(
+                    "checklist-item_ns_lido_s_guarde",
+                    &[("itens", vx(&m.itens.len()))],
                 ));
                 self.modelo = m;
                 true
@@ -104,7 +105,7 @@ impl TelaChecklist {
             return false;
         };
         let r = u.gravar(MODELOS, &self.modelo.id, &self.modelo);
-        match s.resultado(r, "Modelo de checklist guardado.") {
+        match s.resultado(r, tx("checklist-modelo_de_checklist_guardado")) {
             Some(id) => {
                 self.modelo.id = id;
                 true
@@ -116,7 +117,7 @@ impl TelaChecklist {
     /// Começa uma inspeção do posto e da máquina escolhidos.
     pub fn nova(&mut self, s: &mut Sessao) -> bool {
         if self.posto.is_empty() || self.maquina.trim().is_empty() {
-            s.falhar("Escolha o posto e informe a máquina.");
+            s.falhar(tx("checklist-escolha_o_posto_e_informe"));
             return false;
         }
         let responsavel = s
@@ -173,7 +174,7 @@ impl TelaChecklist {
             Ok(id) => {
                 i.id = id;
                 s.mudou();
-                s.avisar("Inspeção gravada.");
+                s.avisar(tx("checklist-inspecao_gravada"));
                 true
             }
             Err(e) => {
@@ -188,7 +189,7 @@ impl TelaChecklist {
     pub fn levar_ao_inventario(&mut self, s: &mut Sessao) -> Option<usize> {
         let i = self.inspecao.as_ref()?;
         if i.id.is_empty() {
-            s.falhar("Grave a inspeção antes de levar ao inventário.");
+            s.falhar(tx("checklist-grave_a_inspecao_antes_de"));
             return None;
         }
         let u = s.unidade.as_mut()?;
@@ -196,7 +197,7 @@ impl TelaChecklist {
         match r {
             Ok(n) => {
                 s.mudou();
-                s.avisar(format!("{n} perigo(s) novo(s) no inventário."));
+                s.avisar(fx("checklist-perigo_s_novo_s_no", &[("n", vx(&n))]));
                 Some(n)
             }
             Err(e) => {
@@ -208,14 +209,14 @@ impl TelaChecklist {
 
     pub fn ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         let Some(u) = s.unidade.as_ref() else {
-            ui.label("Abra uma unidade na tela inicial.");
+            ui.label(tx("checklist-abra_uma_unidade_na_tela"));
             return;
         };
         let postos = u.postos();
-        ui.heading("Checklist de proteção de máquina");
+        ui.heading(tx("checklist-checklist_de_protecao_de_maquina"));
         ui.colored_label(Color32::from_rgb(230, 160, 40), AVISO_NR12);
         if postos.is_empty() {
-            ui.label("Crie ou importe postos na tela Postos.");
+            ui.label(tx("checklist-crie_ou_importe_postos_na"));
             return;
         }
         if !postos.iter().any(|p| p.id == self.posto) {
@@ -224,48 +225,56 @@ impl TelaChecklist {
 
         // Modelo do checklist.
         ui.separator();
-        ui.strong("Modelo do checklist");
+        ui.strong(tx("checklist-modelo_do_checklist"));
         ui.horizontal(|ui| {
-            ui.label(format!(
-                "Em uso: {} ({} itens)",
-                self.modelo.nome,
-                self.modelo.itens.len()
+            ui.label(fx(
+                "checklist-em_uso_itens",
+                &[
+                    ("nome", vx(&self.modelo.nome)),
+                    ("itens", vx(&self.modelo.itens.len())),
+                ],
             ));
-            if ui.button("Usar o checklist próprio").clicked() {
+            if ui
+                .button(tx("checklist-usar_o_checklist_proprio"))
+                .clicked()
+            {
                 self.usar_proprio();
             }
             for m in Self::guardados(s) {
-                if ui.button(format!("Usar '{}'", m.nome)).clicked() {
+                if ui
+                    .button(fx("checklist-usar", &[("nome", vx(&m.nome))]))
+                    .clicked()
+                {
                     self.modelo = m;
                 }
             }
         });
         ui.horizontal(|ui| {
-            ui.label("Importar CSV (tema;item;severidade):");
+            ui.label(tx("checklist-importar_csv_tema_item_severidade"));
             utsim_ui_tema::arquivos::campo(
                 ui,
                 &mut self.arquivo_csv,
                 utsim_ui_tema::arquivos::Tipo::Abrir,
-                "Escolha o arquivo CSV",
+                tx("checklist-escolha_o_arquivo_csv"),
                 &[utsim_ui_tema::arquivos::CSV],
                 300.0,
             );
-            ui.label("Nome:");
+            ui.label(tx("checklist-nome"));
             ui.add(egui::TextEdit::singleline(&mut self.nome_modelo).desired_width(160.0));
-            if ui.button("Ler").clicked() {
+            if ui.button(tx("checklist-ler")).clicked() {
                 self.importar_csv(s);
             }
-            if ui.button("Guardar na unidade").clicked() {
+            if ui.button(tx("checklist-guardar_na_unidade")).clicked() {
                 self.guardar_modelo(s);
             }
         });
 
         // Inspeções gravadas.
         ui.separator();
-        ui.strong("Inspeções gravadas");
+        ui.strong(tx("checklist-inspecoes_gravadas"));
         let gravadas = Self::inspecoes(s);
         if gravadas.is_empty() {
-            ui.weak("Nenhuma inspeção ainda.");
+            ui.weak(tx("checklist-nenhuma_inspecao_ainda"));
         }
         let mut abrir = None;
         for g in &gravadas {
@@ -275,7 +284,7 @@ impl TelaChecklist {
                     .find(|p| p.id == g.posto)
                     .map_or(g.posto.as_str(), |p| p.nome.as_str());
                 ui.label(format!("{} · {} · {}", g.data, nome, g.maquina));
-                if ui.small_button("Abrir").clicked() {
+                if ui.small_button(tx("checklist-abrir")).clicked() {
                     abrir = Some(g.clone());
                 }
             });
@@ -287,7 +296,7 @@ impl TelaChecklist {
         // Nova inspeção.
         ui.separator();
         ui.horizontal(|ui| {
-            ui.label("Posto:");
+            ui.label(tx("checklist-posto"));
             let nome = postos
                 .iter()
                 .find(|p| p.id == self.posto)
@@ -299,9 +308,9 @@ impl TelaChecklist {
                         ui.selectable_value(&mut self.posto, p.id.clone(), &p.nome);
                     }
                 });
-            ui.label("Máquina:");
+            ui.label(tx("checklist-maquina"));
             ui.add(egui::TextEdit::singleline(&mut self.maquina).desired_width(180.0));
-            if ui.button("Nova inspeção").clicked() {
+            if ui.button(tx("checklist-nova_inspecao")).clicked() {
                 self.nova(s);
             }
         });
@@ -309,9 +318,13 @@ impl TelaChecklist {
         let Some(insp) = self.inspecao.as_mut() else {
             return;
         };
-        ui.label(format!(
-            "Inspeção de {} em {} por {}",
-            insp.maquina, insp.data, insp.responsavel
+        ui.label(fx(
+            "checklist-inspecao_de_em_por",
+            &[
+                ("maquina", vx(&insp.maquina)),
+                ("data", vx(&insp.data)),
+                ("responsavel", vx(&insp.responsavel)),
+            ],
         ));
         let mut tema_atual = String::new();
         for item in &self.modelo.itens {
@@ -335,14 +348,14 @@ impl TelaChecklist {
                         ui.selectable_value(&mut r.resposta, x, nome_resposta(x));
                     }
                     if r.resposta == Resposta::NaoConforme {
-                        ui.colored_label(VERMELHO, "vira perigo do posto");
+                        ui.colored_label(VERMELHO, tx("checklist-vira_perigo_do_posto"));
                     }
                 });
                 if r.resposta != Resposta::SemResposta {
                     ui.horizontal(|ui| {
-                        ui.label("Observação");
+                        ui.label(tx("checklist-observacao"));
                         ui.add(egui::TextEdit::singleline(&mut r.observacao).desired_width(260.0));
-                        ui.label("Ação");
+                        ui.label(tx("checklist-acao"));
                         ui.add(egui::TextEdit::singleline(&mut r.acao).desired_width(260.0));
                     });
                 }
@@ -350,16 +363,20 @@ impl TelaChecklist {
         }
         let pendentes = insp.pendentes(&self.modelo).len();
         let nao_conformes = insp.nao_conformes(&self.modelo).len();
-        ui.label(format!(
-            "{pendentes} item(ns) sem resposta · {nao_conformes} não conforme(s)"
+        ui.label(fx(
+            "checklist-item_ns_sem_resposta_nao",
+            &[
+                ("pendentes", vx(&pendentes)),
+                ("nao_conformes", vx(&nao_conformes)),
+            ],
         ));
         let (mut gravar, mut levar) = (false, false);
         ui.horizontal(|ui| {
-            gravar = ui.button("Gravar inspeção").clicked();
+            gravar = ui.button(tx("checklist-gravar_inspecao")).clicked();
             levar = ui
                 .add_enabled(
                     nao_conformes > 0,
-                    egui::Button::new("Levar não conformidades ao inventário"),
+                    egui::Button::new(tx("checklist-levar_nao_conformidades_ao_inventario")),
                 )
                 .clicked();
         });

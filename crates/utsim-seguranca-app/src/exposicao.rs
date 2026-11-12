@@ -1,5 +1,6 @@
 //! Tela de exposição simulada: tempo em zona, entradas sem EPI e quase-conflitos.
 
+use crate::texto::{fx, tx, vx};
 use eframe::egui;
 use utsim_exposicao::relatorio as rel;
 use utsim_exposicao::{Exposure, Options, analyze_all, interval};
@@ -41,7 +42,7 @@ impl TelaExposicao {
         };
         self.sugestoes.clear();
         self.escolhidos.clear();
-        s.avisar("Calculando a exposição...");
+        s.avisar(tx("exposicao-calculando_a_exposicao"));
         self.trabalho.iniciar(move || {
             let replicacoes =
                 analyze_all(&modelo, Options::default()).map_err(|e| e.to_string())?;
@@ -74,16 +75,16 @@ impl TelaExposicao {
 
     pub fn ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         if s.unidade.is_none() {
-            ui.label("Abra uma unidade na tela inicial.");
+            ui.label(tx("exposicao-abra_uma_unidade_na_tela"));
             return;
         }
         if self.trabalho.sondar(ui.ctx()) {
             match self.trabalho.erro() {
                 Some(e) => s.falhar(e.to_string()),
-                None => s.avisar("Exposição calculada."),
+                None => s.avisar(tx("exposicao-exposicao_calculada")),
             }
         }
-        ui.heading("Exposição simulada");
+        ui.heading(tx("exposicao-exposicao_simulada"));
         ui.colored_label(egui::Color32::from_rgb(230, 160, 40), rel::AVISO_SIMULADO);
         let modelos: Vec<String> = {
             let mut v: Vec<String> = s
@@ -99,11 +100,11 @@ impl TelaExposicao {
             v
         };
         ui.horizontal(|ui| {
-            ui.label("Modelo (.ron):");
+            ui.label(tx("exposicao-modelo_ron"));
             utsim_posto_ui::util::campo_modelo(ui, &mut self.modelo, s.unidade.as_ref(), 420.0);
             if !modelos.is_empty() {
                 egui::ComboBox::from_id_salt("modelos_exposicao")
-                    .selected_text("modelos dos postos")
+                    .selected_text(tx("exposicao-modelos_dos_postos"))
                     .show_ui(ui, |ui| {
                         for m in &modelos {
                             ui.selectable_value(&mut self.modelo, m.clone(), m);
@@ -111,7 +112,10 @@ impl TelaExposicao {
                     });
             }
             let livre = !self.trabalho.ocupado() && !self.modelo.trim().is_empty();
-            if ui.add_enabled(livre, egui::Button::new("Rodar")).clicked() {
+            if ui
+                .add_enabled(livre, egui::Button::new(tx("exposicao-rodar")))
+                .clicked()
+            {
                 self.rodar(s);
             }
             if self.trabalho.ocupado() {
@@ -125,9 +129,9 @@ impl TelaExposicao {
             return;
         };
         ui.separator();
-        ui.strong(format!(
-            "{} replicações · Origem: Simulado",
-            r.replicacoes.len()
+        ui.strong(fx(
+            "exposicao-replicacoes_origem_simulado",
+            &[("replicacoes", vx(&r.replicacoes.len()))],
         ));
         let tempo: Vec<f64> = r
             .replicacoes
@@ -145,24 +149,24 @@ impl TelaExposicao {
             .map(|e| e.near_miss_count() as f64)
             .collect();
         egui::Grid::new("exp_resumo").striped(true).show(ui, |ui| {
-            ui.strong("Indicador");
-            ui.strong("Média ± IC 95 %");
+            ui.strong(tx("exposicao-indicador"));
+            ui.strong(tx("exposicao-media_ic_95"));
             ui.end_row();
-            media(ui, "Tempo das pessoas em zona de risco (s)", &tempo);
-            media(ui, "Entradas em zona sem o EPI pedido", &sem_epi);
-            media(ui, "Quase-conflitos simulados", &quase);
+            media(ui, tx("exposicao-tempo_das_pessoas_em_zona"), &tempo);
+            media(ui, tx("exposicao-entradas_em_zona_sem_o"), &sem_epi);
+            media(ui, tx("exposicao-quase_conflitos_simulados"), &quase);
         });
         if let Some(e0) = r.replicacoes.first() {
             ui.add_space(4.0);
-            ui.strong("Por zona e pessoa (primeira replicação)");
+            ui.strong(tx("exposicao-por_zona_e_pessoa_primeira"));
             egui::Grid::new("exp_zonas").striped(true).show(ui, |ui| {
                 for c in [
-                    "Zona",
-                    "Pessoa",
-                    "Tempo (s)",
-                    "Entradas",
-                    "Sem EPI",
-                    "EPI faltante",
+                    tx("exposicao-zona"),
+                    tx("exposicao-pessoa"),
+                    tx("exposicao-tempo_s"),
+                    tx("exposicao-entradas"),
+                    tx("exposicao-sem_epi"),
+                    tx("exposicao-epi_faltante"),
                 ] {
                     ui.strong(c);
                 }
@@ -182,14 +186,19 @@ impl TelaExposicao {
         let mut sugerir = false;
         let mut gravar_html = false;
         ui.horizontal(|ui| {
-            sugerir = ui.button("Sugerir perigos").clicked();
-            gravar_html = ui.button("Gravar HTML de exposição").clicked();
+            sugerir = ui.button(tx("exposicao-sugerir_perigos")).clicked();
+            gravar_html = ui
+                .button(tx("exposicao-gravar_html_de_exposicao"))
+                .clicked();
         });
         if gravar_html {
             let html = rel::html(&r.modelo, &r.replicacoes);
             if let Some(u) = s.unidade.as_ref() {
                 match u.gravar_relatorio("exposicao.html", html.as_bytes()) {
-                    Ok(p) => s.avisar(format!("Relatório gravado em {}", p.display())),
+                    Ok(p) => s.avisar(fx(
+                        "exposicao-relatorio_gravado_em",
+                        &[("p", vx(&p.display()))],
+                    )),
                     Err(e) => s.falhar(e.to_string()),
                 }
             }
@@ -197,7 +206,10 @@ impl TelaExposicao {
         if sugerir {
             self.sugerir(s);
             let n = self.sugestoes.len();
-            s.avisar(format!("{n} perigos sugeridos (nenhum gravado ainda)."));
+            s.avisar(fx(
+                "exposicao-perigos_sugeridos_nenhum_gravado_ainda",
+                &[("n", vx(&n))],
+            ));
         }
         if !self.sugestoes.is_empty() {
             let nomes: Vec<String> = s
@@ -215,7 +227,10 @@ impl TelaExposicao {
                     .unwrap_or("?");
                 ui.checkbox(m, format!("[{posto}] {}: {}", p.descricao, p.circunstancia));
             }
-            if ui.button("Gravar os perigos marcados").clicked() {
+            if ui
+                .button(tx("exposicao-gravar_os_perigos_marcados"))
+                .clicked()
+            {
                 let marcados: Vec<Perigo> = self
                     .sugestoes
                     .iter()
@@ -232,8 +247,9 @@ impl TelaExposicao {
                     }
                 }
                 s.mudou();
-                s.avisar(format!(
-                    "{n} perigos gravados. Avalie probabilidade e severidade no inventário."
+                s.avisar(fx(
+                    "exposicao-perigos_gravados_avalie_probabilidade_e",
+                    &[("n", vx(&n))],
                 ));
                 self.sugestoes.clear();
                 self.escolhidos.clear();

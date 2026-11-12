@@ -2,6 +2,7 @@
 //! pessoas da pasta restrita. Pessoas só aparecem pelo código. O nome só é mostrado no
 //! registro, e só quando a pasta restrita abre; os indicadores nunca mostram nomes.
 
+use crate::texto::{fx, tx, vx};
 use eframe::egui::{self, Color32};
 use egui_plot::{Bar, BarChart, Line, Plot, PlotPoints};
 use utsim_posto::{Pessoa, Restrita};
@@ -101,18 +102,21 @@ impl TelaIncidentes {
         };
         let problemas = i.problemas();
         if !problemas.is_empty() {
-            s.falhar(format!("Incidente não gravado: {}.", problemas.join("; ")));
+            s.falhar(fx(
+                "incidentes-incidente_nao_gravado",
+                &[("problemas", vx(&problemas.join("; ")))],
+            ));
             return false;
         }
         if i.descricao.trim().is_empty() {
-            s.falhar("Incidente não gravado: descreva o que aconteceu.");
+            s.falhar(tx("incidentes-incidente_nao_gravado_descreva_o"));
             return false;
         }
         let Some(u) = s.unidade.as_mut() else {
             return false;
         };
         let r = u.gravar(INCIDENTES, &i.id.clone(), i);
-        if s.resultado(r, "Incidente gravado.").is_some() {
+        if s.resultado(r, tx("incidentes-incidente_gravado")).is_some() {
             self.novo = None;
             true
         } else {
@@ -124,14 +128,15 @@ impl TelaIncidentes {
     pub fn gravar_horas(&mut self, s: &mut Sessao) -> bool {
         let h = self.horas.clone();
         if h.mes.len() != 7 || !h.horas.is_finite() || h.horas <= 0.0 {
-            s.falhar("Informe o mês (AAAA-MM) e as horas.");
+            s.falhar(tx("incidentes-informe_o_mes_aaaa_mm"));
             return false;
         }
         let Some(u) = s.unidade.as_mut() else {
             return false;
         };
         let r = u.gravar(HORAS, &h.mes, &h);
-        s.resultado(r, "Horas-homem gravadas.").is_some()
+        s.resultado(r, tx("incidentes-horas_homem_gravadas"))
+            .is_some()
     }
 
     pub fn config(&self, s: &Sessao) -> Config {
@@ -148,14 +153,15 @@ impl TelaIncidentes {
     pub fn gravar_base(&mut self, s: &mut Sessao) -> bool {
         let c = self.config(s);
         if !(c.base.is_finite() && c.base > 0.0) {
-            s.falhar("A base das taxas deve ser positiva.");
+            s.falhar(tx("incidentes-a_base_das_taxas_deve"));
             return false;
         }
         let Some(u) = s.unidade.as_mut() else {
             return false;
         };
         let r = u.gravar(CONFIG_INDICADORES, "base", &c);
-        s.resultado(r, "Base das taxas gravada.").is_some()
+        s.resultado(r, tx("incidentes-base_das_taxas_gravada"))
+            .is_some()
     }
 
     /// Indicadores do período escolhido.
@@ -204,7 +210,7 @@ impl TelaIncidentes {
             Ok(r) => {
                 self.restrita = Some(r);
                 self.restrita_versao = Some(s.versao);
-                s.avisar("Pasta restrita criada.");
+                s.avisar(tx("incidentes-pasta_restrita_criada"));
                 true
             }
             Err(e) => {
@@ -218,14 +224,17 @@ impl TelaIncidentes {
     pub fn cadastrar(&mut self, s: &mut Sessao) -> Option<String> {
         let p = self.pessoa.clone();
         if p.nome.trim().len() < 2 {
-            s.falhar("Informe o nome da pessoa.");
+            s.falhar(tx("incidentes-informe_o_nome_da_pessoa"));
             return None;
         }
         let r = self.restrita(s)?.cadastrar(p);
         match r {
             Ok(c) => {
                 self.pessoa = Pessoa::default();
-                s.avisar(format!("Pessoa cadastrada com o código {c}."));
+                s.avisar(fx(
+                    "incidentes-pessoa_cadastrada_com_o_codigo",
+                    &[("c", vx(&c))],
+                ));
                 Some(c)
             }
             Err(e) => {
@@ -241,7 +250,7 @@ impl TelaIncidentes {
         };
         match r.anonimizar(codigo) {
             Ok(()) => {
-                s.avisar(format!("{codigo} anonimizada."));
+                s.avisar(fx("incidentes-anonimizada", &[("codigo", vx(&codigo))]));
                 true
             }
             Err(e) => {
@@ -253,16 +262,16 @@ impl TelaIncidentes {
 
     pub fn ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         if s.unidade.is_none() {
-            ui.label("Abra uma unidade na tela inicial.");
+            ui.label(tx("incidentes-abra_uma_unidade_na_tela"));
             return;
         }
-        ui.heading("Incidentes");
+        ui.heading(tx("incidentes-incidentes"));
         ui.horizontal(|ui| {
             for (a, nome) in [
-                (Aba::Registro, "Registro"),
-                (Aba::Horas, "Horas-homem"),
-                (Aba::Indicadores, "Indicadores"),
-                (Aba::Pessoas, "Pessoas (restrita)"),
+                (Aba::Registro, tx("incidentes-registro")),
+                (Aba::Horas, tx("incidentes-horas_homem")),
+                (Aba::Indicadores, tx("incidentes-indicadores")),
+                (Aba::Pessoas, tx("incidentes-pessoas_restrita")),
             ] {
                 if ui.selectable_label(self.aba == a, nome).clicked() {
                     self.aba = a;
@@ -285,17 +294,24 @@ impl TelaIncidentes {
             None => (Vec::new(), false),
         };
         if !aberta {
-            ui.weak("Pasta restrita indisponível: as pessoas aparecem só pelo código.");
+            ui.weak(tx("incidentes-pasta_restrita_indisponivel_as_pessoas"));
         }
         let lista = Self::incidentes(s);
         if lista.is_empty() {
-            ui.weak("Nenhum incidente registrado.");
+            ui.weak(tx("incidentes-nenhum_incidente_registrado"));
         } else {
             let mut editar = None;
             egui::Grid::new("grade_incidentes")
                 .striped(true)
                 .show(ui, |ui| {
-                    for c in ["Data", "Posto", "Tipo", "Descrição", "Pessoas", ""] {
+                    for c in [
+                        tx("incidentes-data"),
+                        tx("incidentes-posto"),
+                        tx("incidentes-tipo"),
+                        tx("incidentes-descricao"),
+                        tx("incidentes-pessoas"),
+                        "",
+                    ] {
                         ui.strong(c);
                     }
                     ui.end_row();
@@ -315,7 +331,7 @@ impl TelaIncidentes {
                             .map(|c| Self::rotulo(&pessoas, aberta, c))
                             .collect();
                         ui.label(nomes.join(", "));
-                        if ui.small_button("Editar").clicked() {
+                        if ui.small_button(tx("incidentes-editar")).clicked() {
                             editar = Some(i.clone());
                         }
                         ui.end_row();
@@ -325,7 +341,7 @@ impl TelaIncidentes {
                 self.novo = Some(i);
             }
         }
-        if ui.button("Novo incidente").clicked() {
+        if ui.button(tx("incidentes-novo_incidente")).clicked() {
             self.novo = Some(Incidente {
                 data: util::hoje(),
                 ..Incidente::default()
@@ -336,11 +352,11 @@ impl TelaIncidentes {
         if let Some(i) = self.novo.as_mut() {
             ui.group(|ui| {
                 ui.horizontal(|ui| {
-                    ui.label("Data (AAAA-MM-DD)");
+                    ui.label(tx("incidentes-data_aaaa_mm_dd"));
                     ui.add(egui::TextEdit::singleline(&mut i.data).desired_width(100.0));
-                    ui.label("Hora");
+                    ui.label(tx("incidentes-hora"));
                     ui.add(egui::TextEdit::singleline(&mut i.hora).desired_width(60.0));
-                    ui.label("Tipo");
+                    ui.label(tx("incidentes-tipo"));
                     egui::ComboBox::from_id_salt("tipo_incidente")
                         .selected_text(i.tipo.nome())
                         .show_ui(ui, |ui| {
@@ -350,29 +366,33 @@ impl TelaIncidentes {
                         });
                 });
                 ui.horizontal(|ui| {
-                    ui.label("Posto");
+                    ui.label(tx("incidentes-posto"));
                     let nome = postos
                         .iter()
                         .find(|p| p.id == i.posto)
-                        .map_or("(nenhum)", |p| p.nome.as_str());
+                        .map_or(tx("incidentes-nenhum"), |p| p.nome.as_str());
                     egui::ComboBox::from_id_salt("posto_incidente")
                         .selected_text(nome)
                         .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut i.posto, String::new(), "(nenhum)");
+                            ui.selectable_value(
+                                &mut i.posto,
+                                String::new(),
+                                tx("incidentes-nenhum"),
+                            );
                             for p in &postos {
                                 ui.selectable_value(&mut i.posto, p.id.clone(), &p.nome);
                             }
                         });
-                    ui.label("Zona do layout");
+                    ui.label(tx("incidentes-zona_do_layout"));
                     ui.add(egui::TextEdit::singleline(&mut i.zona).desired_width(120.0));
                 });
-                campo(ui, "O que aconteceu", &mut i.descricao);
-                campo(ui, "Ações tomadas", &mut i.acoes);
+                campo(ui, tx("incidentes-o_que_aconteceu"), &mut i.descricao);
+                campo(ui, tx("incidentes-acoes_tomadas"), &mut i.acoes);
                 let mut tira = None;
                 for (k, c) in i.causas.iter().enumerate() {
                     ui.horizontal(|ui| {
-                        ui.label(format!("Causa: {c}"));
-                        if ui.small_button("tirar").clicked() {
+                        ui.label(fx("incidentes-causa", &[("c", vx(&c))]));
+                        if ui.small_button(tx("incidentes-tirar")).clicked() {
                             tira = Some(k);
                         }
                     });
@@ -383,23 +403,25 @@ impl TelaIncidentes {
                 ui.horizontal(|ui| {
                     ui.add(
                         egui::TextEdit::singleline(nova_causa)
-                            .hint_text("causa")
+                            .hint_text(tx("incidentes-causa-2"))
                             .desired_width(240.0),
                     );
-                    if ui.button("Incluir causa").clicked() && !nova_causa.trim().is_empty() {
+                    if ui.button(tx("incidentes-incluir_causa")).clicked()
+                        && !nova_causa.trim().is_empty()
+                    {
                         i.causas.push(nova_causa.trim().to_string());
                         nova_causa.clear();
                     }
                 });
                 ui.horizontal(|ui| {
-                    ui.label("Dias perdidos");
+                    ui.label(tx("incidentes-dias_perdidos"));
                     ui.add(egui::DragValue::new(&mut i.dias_perdidos).range(0.0..=10_000.0));
-                    ui.label("Dias debitados (tabela da empresa)");
+                    ui.label(tx("incidentes-dias_debitados_tabela_da_empresa"));
                     ui.add(egui::DragValue::new(&mut i.dias_debitados).range(0.0..=100_000.0));
                 });
-                ui.label("Pessoas envolvidas (da pasta restrita, pelo código):");
+                ui.label(tx("incidentes-pessoas_envolvidas_da_pasta_restrita"));
                 if pessoas.is_empty() {
-                    ui.weak("Nenhuma pessoa disponível.");
+                    ui.weak(tx("incidentes-nenhuma_pessoa_disponivel"));
                 }
                 for p in pessoas.iter().filter(|p| !p.anonimizada) {
                     let mut marcada = i.pessoas.contains(&p.codigo);
@@ -418,11 +440,14 @@ impl TelaIncidentes {
                     .iter()
                     .filter(|c| !pessoas.iter().any(|p| &p.codigo == *c))
                 {
-                    ui.colored_label(VERMELHO, format!("'{c}' não está na pasta restrita"));
+                    ui.colored_label(
+                        VERMELHO,
+                        fx("incidentes-nao_esta_na_pasta_restrita", &[("c", vx(&c))]),
+                    );
                 }
                 ui.horizontal(|ui| {
-                    gravar = ui.button("Gravar incidente").clicked();
-                    cancelar = ui.button("Cancelar").clicked();
+                    gravar = ui.button(tx("incidentes-gravar_incidente")).clicked();
+                    cancelar = ui.button(tx("incidentes-cancelar")).clicked();
                 });
             });
         }
@@ -435,10 +460,10 @@ impl TelaIncidentes {
     }
 
     fn horas_ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
-        ui.label("Horas de exposição por mês, a base das taxas.");
+        ui.label(tx("incidentes-horas_de_exposicao_por_mes"));
         egui::Grid::new("grade_horas").striped(true).show(ui, |ui| {
-            ui.strong("Mês");
-            ui.strong("Horas");
+            ui.strong(tx("incidentes-mes"));
+            ui.strong(tx("incidentes-horas"));
             ui.end_row();
             for h in Self::horas_homem(s) {
                 ui.label(&h.mes);
@@ -447,11 +472,11 @@ impl TelaIncidentes {
             }
         });
         ui.horizontal(|ui| {
-            ui.label("Mês (AAAA-MM)");
+            ui.label(tx("incidentes-mes_aaaa_mm"));
             ui.add(egui::TextEdit::singleline(&mut self.horas.mes).desired_width(80.0));
-            ui.label("Horas");
+            ui.label(tx("incidentes-horas"));
             ui.add(egui::DragValue::new(&mut self.horas.horas).speed(10.0));
-            if ui.button("Gravar horas").clicked() {
+            if ui.button(tx("incidentes-gravar_horas")).clicked() {
                 self.gravar_horas(s);
             }
         });
@@ -459,19 +484,23 @@ impl TelaIncidentes {
 
     fn indicadores_ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         ui.horizontal(|ui| {
-            ui.label("De (AAAA-MM-DD)");
+            ui.label(tx("incidentes-de_aaaa_mm_dd"));
             ui.add(egui::TextEdit::singleline(&mut self.de).desired_width(100.0));
-            ui.label("Até");
+            ui.label(tx("incidentes-ate"));
             ui.add(egui::TextEdit::singleline(&mut self.ate).desired_width(100.0));
-            ui.label("Taxas por");
+            ui.label(tx("incidentes-taxas_por"));
             let mut b = self.config(s).base;
             if ui
-                .add(egui::DragValue::new(&mut b).speed(1000.0).suffix(" h"))
+                .add(
+                    egui::DragValue::new(&mut b)
+                        .speed(1000.0)
+                        .suffix(tx("incidentes-h")),
+                )
                 .changed()
             {
                 self.base = Some(b);
             }
-            if ui.button("Gravar base").clicked() {
+            if ui.button(tx("incidentes-gravar_base")).clicked() {
                 self.gravar_base(s);
             }
         });
@@ -486,7 +515,11 @@ impl TelaIncidentes {
                     ui.label(v);
                     ui.end_row();
                 };
-                linha(ui, "Horas de exposição", format!("{:.1}", ind.horas));
+                linha(
+                    ui,
+                    tx("incidentes-horas_de_exposicao"),
+                    format!("{:.1}", ind.horas),
+                );
                 for t in Tipo::TODOS {
                     linha(
                         ui,
@@ -496,44 +529,49 @@ impl TelaIncidentes {
                 }
                 linha(
                     ui,
-                    "Taxa de frequência",
+                    tx("incidentes-taxa_de_frequencia"),
                     format!("{:.2}", ind.taxa_frequencia),
                 );
                 linha(
                     ui,
-                    "Taxa de frequência com afastamento",
+                    tx("incidentes-taxa_de_frequencia_com_afastamento"),
                     format!("{:.2}", ind.taxa_frequencia_afastamento),
                 );
                 linha(
                     ui,
-                    "Taxa de gravidade",
+                    tx("incidentes-taxa_de_gravidade"),
                     format!("{:.2}", ind.taxa_gravidade),
                 );
                 linha(
                     ui,
-                    "Quase-acidentes por lesão",
+                    tx("incidentes-quase_acidentes_por_lesao"),
                     ind.razao_quase.map_or("–".into(), |r| format!("{r:.2}")),
                 );
                 linha(
                     ui,
-                    "Dias sem acidente com lesão",
+                    tx("incidentes-dias_sem_acidente_com_lesao"),
                     ind.dias_sem_acidente.map_or("–".into(), |d| d.to_string()),
                 );
             });
         if ind.horas <= 0.0 {
-            ui.colored_label(
-                VERMELHO,
-                "Sem horas-homem no período: as taxas ficam em zero.",
-            );
+            ui.colored_label(VERMELHO, tx("incidentes-sem_horas_homem_no_periodo"));
         }
         for (titulo, p, id) in [
-            ("Pareto das causas", &ind.pareto_causas, "pareto_causas"),
-            ("Pareto dos postos", &ind.pareto_postos, "pareto_postos"),
+            (
+                tx("incidentes-pareto_das_causas"),
+                &ind.pareto_causas,
+                "pareto_causas",
+            ),
+            (
+                tx("incidentes-pareto_dos_postos"),
+                &ind.pareto_postos,
+                "pareto_postos",
+            ),
         ] {
             ui.add_space(6.0);
             ui.strong(titulo);
             if p.rows.is_empty() {
-                ui.weak("Sem dados no período.");
+                ui.weak(tx("incidentes-sem_dados_no_periodo"));
                 continue;
             }
             let nomes: Vec<String> = p.rows.iter().map(|r| r.name.clone()).collect();
@@ -562,22 +600,22 @@ impl TelaIncidentes {
         }
         if !ind.por_zona.is_empty() {
             ui.add_space(6.0);
-            ui.strong("Eventos por zona do layout");
+            ui.strong(tx("incidentes-eventos_por_zona_do_layout"));
             for (z, n) in &ind.por_zona {
                 ui.label(format!("{z}: {n}"));
             }
         }
         ui.add_space(6.0);
-        ui.strong("Lesões por mês (carta u)");
+        ui.strong(tx("incidentes-lesoes_por_mes_carta_u"));
         match carta_mensal(&ind, config) {
             None => {
-                ui.weak("A carta precisa de ao menos dois meses com horas-homem.");
+                ui.weak(tx("incidentes-a_carta_precisa_de_ao"));
             }
             Some(ch) => {
                 ui.label(if ch.in_control() {
-                    "Sem sinais na carta."
+                    tx("incidentes-sem_sinais_na_carta")
                 } else {
-                    "Há sinais na carta: o mês fora do padrão merece investigação."
+                    tx("incidentes-ha_sinais_na_carta_o")
                 });
                 for (k, p) in ch.panels.iter().enumerate() {
                     let linha = |v: &[f64]| -> PlotPoints {
@@ -598,8 +636,8 @@ impl TelaIncidentes {
                         .show(ui, |pl| {
                             pl.line(Line::new("taxa", valores));
                             pl.line(Line::new("central", linha(&p.center)));
-                            pl.line(Line::new("LSC", linha(&p.ucl)));
-                            pl.line(Line::new("LIC", linha(&p.lcl)));
+                            pl.line(Line::new(tx("incidentes-lsc"), linha(&p.ucl)));
+                            pl.line(Line::new(tx("incidentes-lic"), linha(&p.lcl)));
                         });
                 }
             }
@@ -607,33 +645,27 @@ impl TelaIncidentes {
     }
 
     fn pessoas_ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
-        ui.label(
-            "Dados pessoais ficam só na pasta restrita (LGPD). No resto da unidade a pessoa \
-             aparece pelo código.",
-        );
+        ui.label(tx("incidentes-dados_pessoais_ficam_so_na"));
         let aberta = self.restrita(s).is_some();
         if !aberta {
-            ui.colored_label(
-                VERMELHO,
-                "A pasta restrita não existe ou não abre para você.",
-            );
+            ui.colored_label(VERMELHO, tx("incidentes-a_pasta_restrita_nao_existe"));
             ui.horizontal(|ui| {
-                ui.label("Pasta fora da unidade (vazio: dentro da unidade)");
+                ui.label(tx("incidentes-pasta_fora_da_unidade_vazio"));
                 utsim_ui_tema::arquivos::campo(
                     ui,
                     &mut self.caminho_restrita,
                     utsim_ui_tema::arquivos::Tipo::Pasta,
-                    "Escolha a pasta restrita",
+                    tx("incidentes-escolha_a_pasta_restrita"),
                     &[],
                     360.0,
                 );
             });
             campo(
                 ui,
-                "Quem pode gravar (autores separados por vírgula; vazio: só você)",
+                tx("incidentes-quem_pode_gravar_autores_separados"),
                 &mut self.escritores,
             );
-            if ui.button("Criar pasta restrita").clicked() {
+            if ui.button(tx("incidentes-criar_pasta_restrita")).clicked() {
                 self.criar_restrita(s);
             }
             return;
@@ -642,13 +674,19 @@ impl TelaIncidentes {
             Some(r) => (r.pessoas(), r.pode_escrever()),
             None => return,
         };
-        if ui.button("Reler a pasta restrita").clicked() {
+        if ui.button(tx("incidentes-reler_a_pasta_restrita")).clicked() {
             self.reler_restrita();
         }
         egui::Grid::new("grade_pessoas")
             .striped(true)
             .show(ui, |ui| {
-                for c in ["Código", "Nome", "Setor", "Consentimento", ""] {
+                for c in [
+                    tx("incidentes-codigo"),
+                    tx("incidentes-nome"),
+                    tx("incidentes-setor"),
+                    tx("incidentes-consentimento"),
+                    "",
+                ] {
                     ui.strong(c);
                 }
                 ui.end_row();
@@ -661,18 +699,18 @@ impl TelaIncidentes {
                         if self.confirmar.as_deref() == Some(p.codigo.as_str()) {
                             ui.horizontal(|ui| {
                                 if ui
-                                    .small_button("Confirmar: apaga o nome para sempre")
+                                    .small_button(tx("incidentes-confirmar_apaga_o_nome_para"))
                                     .clicked()
                                 {
                                     let c = p.codigo.clone();
                                     self.confirmar = None;
                                     self.anonimizar(s, &c);
                                 }
-                                if ui.small_button("Cancelar").clicked() {
+                                if ui.small_button(tx("incidentes-cancelar")).clicked() {
                                     self.confirmar = None;
                                 }
                             });
-                        } else if ui.small_button("Anonimizar").clicked() {
+                        } else if ui.small_button(tx("incidentes-anonimizar")).clicked() {
                             self.confirmar = Some(p.codigo.clone());
                         }
                     } else {
@@ -682,18 +720,18 @@ impl TelaIncidentes {
                 }
             });
         if !pode {
-            ui.colored_label(
-                VERMELHO,
-                "Você não está entre as pessoas que podem gravar dados pessoais nesta unidade.",
-            );
+            ui.colored_label(VERMELHO, tx("incidentes-voce_nao_esta_entre_as"));
             return;
         }
         ui.separator();
-        ui.strong("Cadastrar pessoa");
-        campo(ui, "Nome", &mut self.pessoa.nome);
-        campo(ui, "Setor", &mut self.pessoa.setor);
-        ui.checkbox(&mut self.pessoa.consentimento, "Consentimento registrado");
-        if ui.button("Cadastrar").clicked() {
+        ui.strong(tx("incidentes-cadastrar_pessoa"));
+        campo(ui, tx("incidentes-nome"), &mut self.pessoa.nome);
+        campo(ui, tx("incidentes-setor"), &mut self.pessoa.setor);
+        ui.checkbox(
+            &mut self.pessoa.consentimento,
+            tx("incidentes-consentimento_registrado"),
+        );
+        if ui.button(tx("incidentes-cadastrar")).clicked() {
             self.cadastrar(s);
         }
     }

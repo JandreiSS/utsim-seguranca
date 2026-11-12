@@ -8,6 +8,8 @@ use eframe::egui;
 use utsim_seguranca_app::{App, ICONE, TITULO};
 
 fn main() -> ExitCode {
+    // A primeira vez segue a língua do sistema; a guardada vale por cima (`App::new`).
+    utsim_idiomas::definir(utsim_idiomas::Idioma::inicial());
     if let Some(a) = std::env::args().nth(1) {
         match a.as_str() {
             "--versao" | "--version" | "-V" => {
@@ -49,7 +51,7 @@ fn main() -> ExitCode {
         options,
         Box::new(|cc| {
             utsim_ui_tema::install(&cc.egui_ctx);
-            utsim_ui_tema::usar_cor_do_app(&cc.egui_ctx, utsim_seguranca_app::app::MARCA.cor);
+            utsim_ui_tema::usar_cor_do_app(&cc.egui_ctx, utsim_seguranca_app::app::COR_APP);
             let mut app = App::new(utsim_posto_ui::sessao::arquivo_padrao());
             if !pedido.vazio() {
                 app.atender(&pedido);

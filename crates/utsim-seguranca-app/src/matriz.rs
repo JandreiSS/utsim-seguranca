@@ -1,6 +1,7 @@
 //! Tela da matriz de risco: grade colorida, nomes e decisões dos níveis, importação e
 //! exportação por CSV e gravação na unidade.
 
+use crate::texto::tx;
 use eframe::egui::{self, RichText};
 use utsim_posto_ui::{Sessao, util};
 use utsim_seguranca_core::Matriz;
@@ -31,20 +32,17 @@ impl TelaMatriz {
 
     pub fn ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         let Some(u) = s.unidade.as_ref() else {
-            ui.label("Abra uma unidade na tela inicial.");
+            ui.label(tx("matriz-abra_uma_unidade_na_tela"));
             return;
         };
         if self.rascunho.is_none() {
             self.rascunho = Some(Inventario::ler(u).matriz);
         }
-        ui.heading("Matriz de risco");
-        ui.label(
-            "Clique numa célula para trocar o nível dela. A matriz precisa ser monótona: mais \
-             probabilidade ou mais severidade nunca baixa o nível.",
-        );
+        ui.heading(tx("matriz-matriz_de_risco"));
+        ui.label(tx("matriz-clique_numa_celula_para_trocar"));
         let m = self.rascunho.as_mut().expect("rascunho");
         ui.horizontal(|ui| {
-            ui.label("Nome da matriz:");
+            ui.label(tx("matriz-nome_da_matriz"));
             ui.text_edit_singleline(&mut m.nome);
         });
         // Grade: probabilidade maior em cima.
@@ -83,11 +81,11 @@ impl TelaMatriz {
                 }
             });
         ui.add_space(6.0);
-        ui.collapsing("Níveis: nomes, cores e decisões", |ui| {
+        ui.collapsing(tx("matriz-niveis_nomes_cores_e_decisoes"), |ui| {
             egui::Grid::new("niveis").striped(true).show(ui, |ui| {
-                ui.strong("Nível");
-                ui.strong("Cor (#rrggbb)");
-                ui.strong("Decisão da empresa");
+                ui.strong(tx("matriz-nivel"));
+                ui.strong(tx("matriz-cor_rrggbb"));
+                ui.strong(tx("matriz-decisao_da_empresa"));
                 ui.end_row();
                 for n in &mut m.niveis {
                     ui.text_edit_singleline(&mut n.nome);
@@ -97,12 +95,15 @@ impl TelaMatriz {
                 }
             });
         });
-        ui.collapsing("Degraus de probabilidade e severidade", |ui| {
+        ui.collapsing(tx("matriz-degraus_de_probabilidade_e_severidade"), |ui| {
             egui::Grid::new("degraus").striped(true).show(ui, |ui| {
-                ui.strong("Degrau");
-                ui.strong("Critério");
+                ui.strong(tx("matriz-degrau"));
+                ui.strong(tx("matriz-criterio"));
                 ui.end_row();
-                for (rot, lista) in [("P", &mut m.probabilidade), ("S", &mut m.severidade)] {
+                for (rot, lista) in [
+                    (tx("matriz-p"), &mut m.probabilidade),
+                    (tx("matriz-s"), &mut m.severidade),
+                ] {
                     for (i, d) in lista.iter_mut().enumerate() {
                         ui.horizontal(|ui| {
                             ui.label(format!("{rot}{}", i + 1));
@@ -120,12 +121,12 @@ impl TelaMatriz {
         }
         ui.separator();
         ui.horizontal(|ui| {
-            ui.label("Arquivo CSV:");
+            ui.label(tx("matriz-arquivo_csv"));
             utsim_ui_tema::arquivos::campo(
                 ui,
                 &mut self.arquivo_csv,
                 utsim_ui_tema::arquivos::Tipo::Abrir,
-                "Escolha o arquivo CSV",
+                tx("matriz-escolha_o_arquivo_csv"),
                 &[utsim_ui_tema::arquivos::CSV],
                 420.0,
             );
@@ -137,22 +138,25 @@ impl TelaMatriz {
         let mut recarregar = false;
         ui.horizontal(|ui| {
             importar = ui
-                .add_enabled(tem_arquivo, egui::Button::new("Importar CSV"))
+                .add_enabled(tem_arquivo, egui::Button::new(tx("matriz-importar_csv")))
                 .clicked();
             exportar = ui
-                .add_enabled(tem_arquivo, egui::Button::new("Exportar CSV"))
+                .add_enabled(tem_arquivo, egui::Button::new(tx("matriz-exportar_csv")))
                 .clicked();
             gravar = ui
-                .add_enabled(problemas.is_empty(), egui::Button::new("Gravar na unidade"))
+                .add_enabled(
+                    problemas.is_empty(),
+                    egui::Button::new(tx("matriz-gravar_na_unidade")),
+                )
                 .clicked();
-            recarregar = ui.button("Recarregar da unidade").clicked();
+            recarregar = ui.button(tx("matriz-recarregar_da_unidade")).clicked();
         });
         if importar {
             self.importar();
         }
         if exportar && let Some(m) = &self.rascunho {
             match std::fs::write(self.arquivo_csv.trim(), m.para_csv()) {
-                Ok(()) => s.avisar("Matriz exportada."),
+                Ok(()) => s.avisar(tx("matriz-matriz_exportada")),
                 Err(e) => s.falhar(e.to_string()),
             }
         }
@@ -162,7 +166,7 @@ impl TelaMatriz {
             if let Err(e) = &r {
                 self.erros.push(e.to_string());
             }
-            s.resultado(r, "Matriz gravada na unidade.");
+            s.resultado(r, tx("matriz-matriz_gravada_na_unidade"));
         }
         if recarregar && let Some(u) = s.unidade.as_ref() {
             self.rascunho = Some(Inventario::ler(u).matriz);

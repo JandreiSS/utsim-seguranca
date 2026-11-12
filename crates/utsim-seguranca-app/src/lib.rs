@@ -14,6 +14,7 @@ pub mod inventario;
 pub mod matriz;
 pub mod modelo;
 pub mod relatorio;
+pub mod texto;
 
 pub use app::{App, Tela};
 pub use utsim_seguranca_core::AVISO_LEGAL;

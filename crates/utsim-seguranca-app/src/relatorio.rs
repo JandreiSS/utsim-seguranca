@@ -1,5 +1,6 @@
 //! Tela do relatório do inventário: escolhe os postos e grava o HTML em `relatorios/`.
 
+use crate::texto::{fx, tx, vx};
 use eframe::egui;
 use utsim_posto_ui::{Sessao, util};
 use utsim_seguranca_core::inventario::Inventario;
@@ -26,16 +27,16 @@ impl TelaRelatorio {
         // O aviso legal abre a tela do relatório (e também fica no rodapé).
         ui.colored_label(egui::Color32::from_rgb(230, 160, 40), AVISO_LEGAL);
         let Some(u) = s.unidade.as_ref() else {
-            ui.label("Abra uma unidade na tela inicial.");
+            ui.label(tx("relatorio-abra_uma_unidade_na_tela"));
             return;
         };
-        ui.heading("Relatório do inventário de riscos");
+        ui.heading(tx("relatorio-relatorio_do_inventario_de_riscos"));
         let postos = u.postos();
         if postos.is_empty() {
-            ui.label("A unidade ainda não tem postos.");
+            ui.label(tx("relatorio-a_unidade_ainda_nao_tem"));
             return;
         }
-        ui.label("Postos no relatório:");
+        ui.label(tx("relatorio-postos_no_relatorio"));
         for p in &postos {
             let mut marcado = !self.desmarcados.contains(&p.id);
             if ui.checkbox(&mut marcado, &p.nome).changed() {
@@ -56,7 +57,7 @@ impl TelaRelatorio {
         if ui
             .add_enabled(
                 !marcados.is_empty(),
-                egui::Button::new("Gravar HTML do inventário"),
+                egui::Button::new(tx("relatorio-gravar_html_do_inventario")),
             )
             .clicked()
         {
@@ -65,7 +66,10 @@ impl TelaRelatorio {
                 && let Some(u) = s.unidade.as_ref()
             {
                 match u.gravar_relatorio("inventario_riscos.html", h.as_bytes()) {
-                    Ok(p) => s.avisar(format!("Relatório gravado em {}", p.display())),
+                    Ok(p) => s.avisar(fx(
+                        "relatorio-relatorio_gravado_em",
+                        &[("p", vx(&p.display()))],
+                    )),
                     Err(e) => s.falhar(e.to_string()),
                 }
             }
@@ -73,7 +77,7 @@ impl TelaRelatorio {
         if ui
             .add_enabled(
                 !marcados_pdf.is_empty(),
-                egui::Button::new("Gravar PDF do inventário"),
+                egui::Button::new(tx("relatorio-gravar_pdf_do_inventario")),
             )
             .clicked()
         {
@@ -85,7 +89,10 @@ impl TelaRelatorio {
                 let bytes =
                     utsim_seguranca_core::relatorio::pdf(&b, &format!("{}, {hoje}", u.autor()));
                 match u.gravar_relatorio("inventario_riscos.pdf", &bytes) {
-                    Ok(p) => s.avisar(format!("Relatório gravado em {}", p.display())),
+                    Ok(p) => s.avisar(fx(
+                        "relatorio-relatorio_gravado_em",
+                        &[("p", vx(&p.display()))],
+                    )),
                     Err(e) => s.falhar(e.to_string()),
                 }
             }
