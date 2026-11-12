@@ -6,12 +6,15 @@ use std::path::PathBuf;
 use std::time::SystemTime;
 
 use eframe::egui::{self, Color32, RichText};
+use utsim_edit::Document;
+use utsim_edit::abas;
 use utsim_model::Model;
+use utsim_model::safety::HazardDef;
 use utsim_posto::{Posto, Unidade};
-use utsim_posto_ui::{Sessao, util};
+use utsim_posto_ui::{Sessao, TelaModelo, util};
 use utsim_seguranca_core::inventario::{
-    ACOES, Acao, ETAPAS, Grupo, Hierarquia, Inventario, PERIGOS, Perigo, REAVALIACOES, Reavaliacao,
-    Situacao,
+    ACOES, Acao, ETAPAS, Grupo, Hierarquia, Inventario, ORIGEM_NO, PERIGOS, Perigo, REAVALIACOES,
+    Reavaliacao, Situacao, passar_ao_no,
 };
 use utsim_seguranca_core::matriz::{Degrau, Matriz};
 
@@ -43,6 +46,108 @@ pub struct TelaInventario {
     modelos: Modelos,
     /// O objeto do modelo que o posto escolhido é (para o aviso dos perigos do nó).
     objeto_do_posto: String,
+    /// O arquivo do modelo ligado ao posto escolhido, quando há modelo e objeto.
+    modelo_do_posto: Option<PathBuf>,
+    /// Pedido ao modelo (abrir o nó, levar um perigo), atendido pelo app com a tela Modelo.
+    pub pedido: Option<PedidoNo>,
+}
+
+/// O que o inventário pede ao modelo ligado ao posto.
+#[derive(Clone, Debug, PartialEq)]
+pub enum PedidoNo {
+    /// Abrir o nó na tela Modelo, para editar os perigos dele na aba Segurança.
+    Abrir { modelo: PathBuf, objeto: String },
+    /// Levar um perigo da unidade para o nó (`safety.hazards`).
+    Levar {
+        modelo: PathBuf,
+        objeto: String,
+        perigo: Box<Perigo>,
+    },
+}
+
+/// Grava o perigo `h` como um perigo novo do nó `objeto` (liga o bloco de segurança se
+/// preciso) e devolve o id que o nó deu a ele.
+pub fn gravar_no_no(doc: &mut Document, objeto: &str, h: &HazardDef) -> Result<String, String> {
+    let tem_bloco = doc
+        .model()
+        .objects
+        .iter()
+        .find(|o| o.name == objeto)
+        .ok_or_else(|| fx("inventario-no_fora_do_modelo", &[("objeto", vx(&objeto))]))?
+        .safety
+        .is_some();
+    if !tem_bloco {
+        doc.apply(abas::editar(doc.model(), objeto, "safety", "sim")?)?;
+    }
+    doc.apply(abas::adicionar(doc.model(), objeto, "safety.hazards")?)?;
+    let hs = &doc
+        .model()
+        .objects
+        .iter()
+        .find(|o| o.name == objeto)
+        .expect("nó")
+        .safety;
+    let i = hs.as_ref().map_or(0, |s| s.hazards.len()) - 1;
+    let id = hs.as_ref().expect("bloco").hazards[i].id.clone();
+    let base = format!("safety.hazards[{i}]");
+    for (campo, valor) in [
+        ("group", format!("{:?}", h.group)),
+        ("description", h.description.clone()),
+        ("source", h.source.clone()),
+        ("circumstance", h.circumstance.clone()),
+        ("injuries", h.injuries.clone()),
+        ("controls", h.controls.clone()),
+        ("probability", h.probability.to_string()),
+        ("severity", h.severity.to_string()),
+    ] {
+        let c = abas::editar(doc.model(), objeto, &format!("{base}.{campo}"), &valor)?;
+        doc.apply(c)?;
+    }
+    Ok(id)
+}
+
+/// Atende o pedido do inventário com a tela Modelo do app. Devolve `true` quando o app
+/// deve ir para a tela Modelo.
+pub fn atender_pedido(p: PedidoNo, s: &mut Sessao, modelo: &mut TelaModelo) -> bool {
+    let autor = s.config.autor.clone();
+    match p {
+        PedidoNo::Abrir {
+            modelo: caminho,
+            objeto,
+        } => {
+            if modelo.arquivo() == Some(caminho.as_path()) {
+                modelo.selecionar(&objeto);
+                true
+            } else {
+                match modelo.abrir_em_no(&caminho, Some(&objeto), &autor) {
+                    Ok(()) => true,
+                    Err(e) => {
+                        s.falhar(e);
+                        false
+                    }
+                }
+            }
+        }
+        PedidoNo::Levar {
+            modelo: caminho,
+            objeto,
+            perigo,
+        } => {
+            let h = perigo.para_o_no();
+            match modelo.editar_arquivo(&caminho, &autor, |d| gravar_no_no(d, &objeto, &h)) {
+                Ok(hid) => {
+                    let novo = format!("{ORIGEM_NO}:{}:{hid}", perigo.posto);
+                    if let Some(u) = s.unidade.as_mut() {
+                        let r = passar_ao_no(u, &perigo.id, &novo);
+                        let ok = fx("inventario-perigo_levado_ao_no", &[("objeto", vx(&objeto))]);
+                        s.resultado(r, &ok);
+                    }
+                }
+                Err(e) => s.falhar(fx("inventario-nao_levou_ao_no", &[("erro", vx(&e))])),
+            }
+            false
+        }
+    }
 }
 
 /// Os modelos dos postos, relidos quando o arquivo muda no disco.
@@ -215,12 +320,14 @@ impl TelaInventario {
             .find(|p| p.id == self.posto)
             .map(|p| p.nome.clone())
             .unwrap_or_default();
-        self.objeto_do_posto = inv
-            .postos
-            .iter()
-            .find(|p| p.id == self.posto)
+        let posto_escolhido = inv.postos.iter().find(|p| p.id == self.posto);
+        self.objeto_do_posto = posto_escolhido
             .and_then(|p| p.objeto.clone())
             .unwrap_or_default();
+        self.modelo_do_posto = posto_escolhido
+            .filter(|p| p.objeto.as_deref().is_some_and(|o| !o.is_empty()))
+            .and_then(|p| p.modelo.as_ref())
+            .map(|m| u.caminho_modelo(m));
         ui.horizontal(|ui| {
             ui.label(tx("inventario-posto"));
             egui::ComboBox::from_id_salt("posto_inventario")
@@ -329,7 +436,17 @@ impl TelaInventario {
                     tx("inventario-no_do_modelo")
                 ))
                 .id_salt(("perigo1", &p.id))
-                .show(ui, |ui| perigo_do_no(ui, p, &objeto));
+                .show(ui, |ui| {
+                    perigo_do_no(ui, p, &objeto);
+                    if let Some(m) = &self.modelo_do_posto
+                        && ui.button(tx("inventario-editar_no_no")).clicked()
+                    {
+                        self.pedido = Some(PedidoNo::Abrir {
+                            modelo: m.clone(),
+                            objeto: objeto.clone(),
+                        });
+                    }
+                });
                 continue;
             }
             let d = rascunho(&mut self.perigos, &p.id, p);
@@ -355,6 +472,21 @@ impl TelaInventario {
                     campo(ui, tx("inventario-circunstancia"), &mut d.circunstancia);
                     campo(ui, tx("inventario-possiveis_lesoes"), &mut d.lesoes);
                     botoes_perigo(ui, d, p, cmds);
+                    if let Some(m) = &self.modelo_do_posto
+                        && ui
+                            .add_enabled(!sujo, egui::Button::new(tx("inventario-levar_ao_no")))
+                            .on_hover_text(fx(
+                                "inventario-levar_ao_no_dica",
+                                &[("objeto", vx(&objeto))],
+                            ))
+                            .clicked()
+                    {
+                        self.pedido = Some(PedidoNo::Levar {
+                            modelo: m.clone(),
+                            objeto: objeto.clone(),
+                            perigo: Box::new(p.clone()),
+                        });
+                    }
                 });
         }
         ui.separator();

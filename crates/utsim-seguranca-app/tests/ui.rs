@@ -225,3 +225,132 @@ fn inventario_mostra_os_perigos_do_no() {
     let html = utsim_seguranca_app::relatorio::TelaRelatorio::gerar(&app.sessao, &[]).unwrap();
     assert!(html.contains("Ruído da prensa"));
 }
+
+#[test]
+fn inventario_leva_o_perigo_da_unidade_para_o_no() {
+    use std::sync::Arc;
+    use utsim_edit::abas::Aba;
+    use utsim_seguranca_app::inventario::PedidoNo;
+    use utsim_seguranca_core::inventario::{REAVALIACOES, Reavaliacao};
+    let dir = tempfile::tempdir().unwrap();
+    let copia = dir.path().join("cruzamento.ron");
+    std::fs::copy(MODELO, &copia).unwrap();
+    let ctx = egui::Context::default();
+    let mut app = App::new(Some(dir.path().join("cfg.json")));
+    assert!(
+        app.sessao
+            .criar(&dir.path().join("unidade"), "Fábrica", "Bia")
+    );
+    app.postos.importar = copia.display().to_string();
+    app.postos.sugerir(&mut app.sessao);
+    let u = app.sessao.unidade.as_mut().unwrap();
+    for p in app.postos.sugestoes.clone() {
+        u.gravar_posto(&p).unwrap();
+    }
+    let posto = u
+        .postos()
+        .into_iter()
+        .find(|p| p.objeto.as_deref() == Some("prensa"))
+        .unwrap();
+    // Um perigo da unidade, com uma ação e uma reavaliação.
+    let perigo = Perigo {
+        posto: posto.id.clone(),
+        grupo: utsim_seguranca_core::inventario::Grupo::Quimico,
+        descricao: "Névoa de óleo".into(),
+        fonte: "Lubrificação da prensa".into(),
+        probabilidade: 3,
+        severidade: 2,
+        ..Perigo::default()
+    };
+    let id = u.gravar(PERIGOS, "", &perigo).unwrap();
+    let perigo = Perigo {
+        id: id.clone(),
+        ..perigo
+    };
+    u.gravar(
+        ACOES,
+        "",
+        &Acao {
+            perigo: id.clone(),
+            descricao: "Exaustão local".into(),
+            ..Acao::default()
+        },
+    )
+    .unwrap();
+    u.gravar(
+        REAVALIACOES,
+        "",
+        &Reavaliacao {
+            perigo: id.clone(),
+            data: "2026-11-01".into(),
+            probabilidade: 2,
+            severidade: 2,
+            ..Reavaliacao::default()
+        },
+    )
+    .unwrap();
+    let levar = PedidoNo::Levar {
+        modelo: copia.clone(),
+        objeto: "prensa".into(),
+        perigo: Box::new(perigo.clone()),
+    };
+
+    // Outro app edita o modelo: nada muda, e a mensagem diz quem edita.
+    let mut outro = utsim_posto_ui::TelaModelo::nova(
+        "qualidade",
+        Aba::Qualidade,
+        Arc::new(|_| Ok(Default::default())),
+    );
+    outro.abrir(&copia, "Caio").unwrap();
+    app.tela = Tela::Inventario;
+    app.inventario.posto = posto.id.clone();
+    app.inventario.pedido = Some(levar.clone());
+    quadro(&mut app, &ctx);
+    assert!(
+        app.sessao.mensagem.contains("Caio"),
+        "{}",
+        app.sessao.mensagem
+    );
+    let u = app.sessao.unidade.as_ref().unwrap();
+    assert_eq!(Inventario::ler(u).perigos.len(), 1);
+    outro.fechar();
+
+    // Livre: o perigo vai para o nó, e a ação e a reavaliação seguem com ele.
+    app.inventario.pedido = Some(levar);
+    quadro(&mut app, &ctx);
+    assert!(!app.sessao.erro, "{}", app.sessao.mensagem);
+    let m = utsim_model::Model::load(&copia).unwrap();
+    let hs = &m
+        .objects
+        .iter()
+        .find(|o| o.name == "prensa")
+        .unwrap()
+        .safety
+        .as_ref()
+        .unwrap()
+        .hazards;
+    assert_eq!(hs.len(), 1);
+    assert_eq!(hs[0].description, "Névoa de óleo");
+    assert_eq!(hs[0].source, "Lubrificação da prensa");
+    assert_eq!(hs[0].group, utsim_model::safety::HazardGroup::Chemical);
+    assert_eq!((hs[0].probability, hs[0].severity), (3, 2));
+    let novo = format!("no:{}:{}", posto.id, hs[0].id);
+    let u = app.sessao.unidade.as_ref().unwrap();
+    assert!(Inventario::ler(u).perigos.is_empty());
+    let inv = Inventario::ler_com_nos(u);
+    assert_eq!(inv.acoes_do_perigo(&novo).len(), 1);
+    assert_eq!(inv.ultima_reavaliacao(&novo).unwrap().probabilidade, 2);
+    // A trava foi solta: o outro app volta a editar.
+    outro.abrir(&copia, "Caio").unwrap();
+    assert!(outro.pode_editar());
+    outro.fechar();
+
+    // "Editar no nó" abre a tela Modelo no nó.
+    app.inventario.pedido = Some(PedidoNo::Abrir {
+        modelo: copia.clone(),
+        objeto: "prensa".into(),
+    });
+    quadro(&mut app, &ctx);
+    assert_eq!(app.tela, Tela::Modelo);
+    assert_eq!(app.modelo.arquivo(), Some(copia.as_path()));
+}

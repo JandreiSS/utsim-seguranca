@@ -118,6 +118,11 @@ impl App {
             self.ferramentas.abrir_no(&modelo, &objeto);
             self.tela = Tela::Ferramentas;
         }
+        if let Some(p) = self.inventario.pedido.take()
+            && crate::inventario::atender_pedido(p, &mut self.sessao, &mut self.modelo)
+        {
+            self.tela = Tela::Modelo;
+        }
         if self.tela != Tela::Ferramentas {
             self.ferramentas.gravar_pendente(&mut self.sessao);
         }
