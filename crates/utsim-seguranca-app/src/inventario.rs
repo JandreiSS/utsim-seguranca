@@ -2,8 +2,12 @@
 
 use crate::texto::{fx, tx, vx};
 use std::collections::BTreeMap;
+use std::path::PathBuf;
+use std::time::SystemTime;
 
 use eframe::egui::{self, Color32, RichText};
+use utsim_model::Model;
+use utsim_posto::{Posto, Unidade};
 use utsim_posto_ui::{Sessao, util};
 use utsim_seguranca_core::inventario::{
     ACOES, Acao, ETAPAS, Grupo, Hierarquia, Inventario, PERIGOS, Perigo, REAVALIACOES, Reavaliacao,
@@ -35,6 +39,55 @@ pub struct TelaInventario {
     novas_acoes: BTreeMap<String, Acao>,
     /// Reavaliação nova por id de perigo.
     novas_reav: BTreeMap<String, Reavaliacao>,
+    /// Os modelos ligados aos postos, para os perigos que moram no nó.
+    modelos: Modelos,
+    /// O objeto do modelo que o posto escolhido é (para o aviso dos perigos do nó).
+    objeto_do_posto: String,
+}
+
+/// Os modelos dos postos, relidos quando o arquivo muda no disco.
+#[derive(Default)]
+struct Modelos(BTreeMap<PathBuf, (Option<SystemTime>, Option<Model>)>);
+
+impl Modelos {
+    fn atualizar(&mut self, u: &Unidade, postos: &[Posto]) {
+        for p in postos {
+            let Some(m) = &p.modelo else { continue };
+            let c = u.caminho_modelo(m);
+            let t = std::fs::metadata(&c).and_then(|m| m.modified()).ok();
+            if self.0.get(&c).is_none_or(|(x, _)| *x != t) {
+                let lido = Model::load(&c).ok();
+                self.0.insert(c, (t, lido));
+            }
+        }
+    }
+
+    fn de(&self, u: &Unidade, p: &Posto) -> Option<&Model> {
+        let m = p.modelo.as_ref()?;
+        self.0.get(&u.caminho_modelo(m))?.1.as_ref()
+    }
+}
+
+/// Um perigo do nó: só leitura aqui, com o aviso de onde editar.
+fn perigo_do_no(ui: &mut egui::Ui, p: &Perigo, objeto: &str) {
+    ui.weak(fx("inventario-perigo_no_no", &[("objeto", vx(&objeto))]));
+    egui::Grid::new(("perigo_no", &p.id))
+        .num_columns(2)
+        .show(ui, |ui| {
+            for (r, v) in [
+                (tx("inventario-grupo"), p.grupo.nome().to_string()),
+                (tx("inventario-fonte"), p.fonte.clone()),
+                (tx("inventario-circunstancia"), p.circunstancia.clone()),
+                (tx("inventario-possiveis_lesoes"), p.lesoes.clone()),
+                (tx("inventario-controles_existentes"), p.controles.clone()),
+            ] {
+                if !v.is_empty() {
+                    ui.label(r);
+                    ui.label(v);
+                    ui.end_row();
+                }
+            }
+        });
 }
 
 fn combo_degrau(
@@ -136,7 +189,10 @@ impl TelaInventario {
             ui.label(tx("inventario-abra_uma_unidade_na_tela"));
             return;
         };
-        let inv = Inventario::ler(u);
+        let postos = u.postos();
+        self.modelos.atualizar(u, &postos);
+        let modelos = &self.modelos;
+        let inv = Inventario::ler(u).com_nos(|p| modelos.de(u, p));
         ui.heading(tx("inventario-inventario_de_riscos_por_posto"));
         if inv.postos.is_empty() {
             ui.label(tx("inventario-a_unidade_ainda_nao_tem"));
@@ -158,6 +214,12 @@ impl TelaInventario {
             .iter()
             .find(|p| p.id == self.posto)
             .map(|p| p.nome.clone())
+            .unwrap_or_default();
+        self.objeto_do_posto = inv
+            .postos
+            .iter()
+            .find(|p| p.id == self.posto)
+            .and_then(|p| p.objeto.clone())
             .unwrap_or_default();
         ui.horizontal(|ui| {
             ui.label(tx("inventario-posto"));
@@ -257,7 +319,19 @@ impl TelaInventario {
     }
 
     fn etapa_perigos(&mut self, ui: &mut egui::Ui, meus: &[Perigo], cmds: &mut Vec<Cmd>) {
+        let objeto = self.objeto_do_posto.clone();
         for p in meus {
+            if p.eh_do_no() {
+                egui::CollapsingHeader::new(format!(
+                    "[{}] {} ({})",
+                    p.grupo.nome(),
+                    p.descricao,
+                    tx("inventario-no_do_modelo")
+                ))
+                .id_salt(("perigo1", &p.id))
+                .show(ui, |ui| perigo_do_no(ui, p, &objeto));
+                continue;
+            }
             let d = rascunho(&mut self.perigos, &p.id, p);
             let sujo = d != p;
             let titulo = format!(
@@ -338,7 +412,18 @@ impl TelaInventario {
         if meus.is_empty() {
             ui.label(tx("inventario-sem_perigos_neste_posto_levante"));
         }
+        let objeto = self.objeto_do_posto.clone();
         for p in meus {
+            if p.eh_do_no() {
+                ui.group(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.strong(&p.descricao);
+                        selo(ui, m, p.probabilidade, p.severidade);
+                    });
+                    perigo_do_no(ui, p, &objeto);
+                });
+                continue;
+            }
             let d = rascunho(&mut self.perigos, &p.id, p);
             ui.group(|ui| {
                 ui.horizontal(|ui| {

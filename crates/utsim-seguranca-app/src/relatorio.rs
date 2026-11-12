@@ -18,7 +18,7 @@ impl TelaRelatorio {
     /// HTML do inventário dos postos marcados (`marcados` vazio: todos).
     pub fn gerar(s: &Sessao, marcados: &[String]) -> Option<String> {
         let u = s.unidade.as_ref()?;
-        let inv = Inventario::ler(u);
+        let inv = Inventario::ler_com_nos(u);
         let b = blocos(&inv, &u.manifesto.nome, marcados, &util::hoje());
         Some(html(&b))
     }
@@ -83,7 +83,7 @@ impl TelaRelatorio {
         {
             let escolha = if todos { Vec::new() } else { marcados_pdf };
             if let Some(u) = s.unidade.as_ref() {
-                let inv = Inventario::ler(u);
+                let inv = Inventario::ler_com_nos(u);
                 let hoje = util::hoje();
                 let b = blocos(&inv, &u.manifesto.nome, &escolha, &hoje);
                 let bytes =

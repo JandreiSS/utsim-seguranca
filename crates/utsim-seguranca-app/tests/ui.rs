@@ -153,3 +153,75 @@ fn inventario_exposicao_e_relatorio() {
     assert!(html.contains("Prensagem de dedos"));
     let _: &Sessao = &app.sessao;
 }
+
+#[test]
+fn inventario_mostra_os_perigos_do_no() {
+    use utsim_edit::{Document, abas};
+    let dir = tempfile::tempdir().unwrap();
+    // Um perigo gravado no nó da prensa, numa cópia do modelo.
+    let copia = dir.path().join("cruzamento.ron");
+    std::fs::copy(MODELO, &copia).unwrap();
+    let mut d = Document::open(&copia).unwrap();
+    for f in [
+        (|m: &utsim_model::Model| abas::editar(m, "prensa", "safety", "sim"))
+            as fn(&utsim_model::Model) -> Result<_, String>,
+        |m| abas::adicionar(m, "prensa", "safety.hazards"),
+        |m| {
+            abas::editar(
+                m,
+                "prensa",
+                "safety.hazards[0].description",
+                "Ruído da prensa",
+            )
+        },
+        |m| abas::editar(m, "prensa", "safety.hazards[0].probability", "3"),
+        |m| abas::editar(m, "prensa", "safety.hazards[0].severity", "3"),
+    ] {
+        let c = f(d.model()).unwrap();
+        d.apply(c).unwrap();
+    }
+    d.save().unwrap();
+
+    let ctx = egui::Context::default();
+    let mut app = App::new(Some(dir.path().join("cfg.json")));
+    assert!(
+        app.sessao
+            .criar(&dir.path().join("unidade"), "Fábrica", "Bia")
+    );
+    app.postos.importar = copia.display().to_string();
+    app.postos.sugerir(&mut app.sessao);
+    for p in app.postos.sugestoes.clone() {
+        app.sessao
+            .unidade
+            .as_mut()
+            .unwrap()
+            .gravar_posto(&p)
+            .unwrap();
+    }
+    let u = app.sessao.unidade.as_ref().unwrap();
+    let posto = u
+        .postos()
+        .into_iter()
+        .find(|p| p.objeto.as_deref() == Some("prensa"))
+        .unwrap();
+    // A unidade não tem perigo nenhum: o do nó chega pelo modelo.
+    assert!(Inventario::ler(u).perigos.is_empty());
+    let inv = Inventario::ler_com_nos(u);
+    assert_eq!(inv.perigos_do_posto(&posto.id).len(), 1);
+    assert_eq!(inv.sem_acao().len(), 1);
+
+    app.tela = Tela::Inventario;
+    for etapa in [1, 2] {
+        app.inventario.etapa = etapa;
+        app.inventario.posto = posto.id.clone();
+        quadro(&mut app, &ctx);
+        let t = quadro(&mut app, &ctx);
+        assert!(t.contains("Ruído da prensa"), "etapa {etapa}: {t}");
+        if etapa == 1 {
+            assert!(t.contains("no nó do modelo"), "{t}");
+        }
+    }
+    // O relatório também leva o perigo do nó.
+    let html = utsim_seguranca_app::relatorio::TelaRelatorio::gerar(&app.sessao, &[]).unwrap();
+    assert!(html.contains("Ruído da prensa"));
+}
