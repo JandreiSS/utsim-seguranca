@@ -123,6 +123,8 @@ impl App {
         {
             self.tela = Tela::Modelo;
         }
+        self.ferramentas
+            .atender_limites(&mut self.sessao, &mut self.modelo);
         if self.tela != Tela::Ferramentas {
             self.ferramentas.gravar_pendente(&mut self.sessao);
         }
