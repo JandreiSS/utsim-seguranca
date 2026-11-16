@@ -54,15 +54,7 @@ pub struct App {
 impl App {
     pub fn new(config: Option<PathBuf>) -> App {
         let sessao = Sessao::nova(config);
-        // A língua guardada; sem ela, a de agora (a do sistema, posta pelo `main`).
-        if let Some(i) = sessao
-            .config
-            .idioma
-            .as_deref()
-            .and_then(utsim_idiomas::Idioma::de_codigo)
-        {
-            utsim_idiomas::definir(i);
-        }
+        sessao.usar_idioma_guardado();
         App {
             sessao,
             tela: Tela::Inicial,
@@ -217,12 +209,7 @@ impl App {
         }
         .mostrar(ui, &mut self.tela);
         ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
-            let mut i = utsim_idiomas::atual();
-            if utsim_idiomas::seletor(ui, "idioma", &mut i) {
-                utsim_idiomas::definir(i);
-                self.sessao.config.idioma = Some(i.codigo().to_string());
-                self.sessao.gravar_config();
-            }
+            self.sessao.seletor_de_idioma(ui);
         });
     }
 
@@ -269,16 +256,12 @@ impl eframe::App for App {
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        self.ferramentas.gravar_pendente(&mut self.sessao);
-        if let Some(p) = &self.pedido
-            && let Some(Err(e)) = p.responder(
-                &self.ferramentas,
-                &self.sessao,
-                "seguranca",
-                env!("CARGO_PKG_VERSION"),
-            )
-        {
-            eprintln!("resposta do pedido: {e}");
-        }
+        utsim_posto_ui::abrir::ao_fechar(
+            &mut self.ferramentas,
+            &mut self.sessao,
+            self.pedido.as_ref(),
+            "seguranca",
+            env!("CARGO_PKG_VERSION"),
+        );
     }
 }
