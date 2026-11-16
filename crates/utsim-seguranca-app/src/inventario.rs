@@ -4,6 +4,7 @@ use crate::texto::{fx, tx, vx};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::SystemTime;
+use utsim_ui_tema::campos::texto_com_rotulo as campo;
 
 use eframe::egui::{self, Color32, RichText};
 use utsim_edit::Document;
@@ -225,13 +226,6 @@ fn selo(ui: &mut egui::Ui, m: &Matriz, p: usize, s: usize) {
             .color(util::texto_sobre(cor)),
     )
     .on_hover_text(&n.decisao);
-}
-
-fn campo(ui: &mut egui::Ui, rotulo: &str, texto: &mut String) {
-    ui.horizontal(|ui| {
-        ui.label(rotulo);
-        ui.add(egui::TextEdit::singleline(texto).desired_width(f32::INFINITY));
-    });
 }
 
 fn combo_grupo(ui: &mut egui::Ui, id: impl std::hash::Hash + std::fmt::Debug, g: &mut Grupo) {

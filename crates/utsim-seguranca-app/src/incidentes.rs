@@ -4,13 +4,14 @@
 
 use crate::texto::{fx, tx, vx};
 use eframe::egui::{self, Color32};
-use egui_plot::{Bar, BarChart, Line, Plot, PlotPoints};
+use egui_plot::{Bar, BarChart, Plot};
 use utsim_posto::{Pessoa, Restrita};
 use utsim_posto_ui::{Sessao, util};
 use utsim_seguranca_core::incidentes::{
     CONFIG_INDICADORES, Config, HORAS, HorasHomem, INCIDENTES, Incidente, Indicadores, Tipo,
     carta_mensal, indicadores,
 };
+use utsim_ui_tema::campos::texto_com_rotulo as campo;
 
 const VERMELHO: Color32 = Color32::from_rgb(230, 90, 80);
 
@@ -42,13 +43,6 @@ pub struct TelaIncidentes {
     pub escritores: String,
     pub pessoa: Pessoa,
     pub confirmar: Option<String>,
-}
-
-fn campo(ui: &mut egui::Ui, rotulo: &str, texto: &mut String) {
-    ui.horizontal(|ui| {
-        ui.label(rotulo);
-        ui.add(egui::TextEdit::singleline(texto).desired_width(f32::INFINITY));
-    });
 }
 
 impl TelaIncidentes {
@@ -617,29 +611,15 @@ impl TelaIncidentes {
                 } else {
                     tx("incidentes-ha_sinais_na_carta_o")
                 });
-                for (k, p) in ch.panels.iter().enumerate() {
-                    let linha = |v: &[f64]| -> PlotPoints {
-                        v.iter()
-                            .enumerate()
-                            .map(|(i, y)| [(i + 1) as f64, *y])
-                            .collect()
-                    };
-                    let valores: PlotPoints = p
-                        .values
-                        .iter()
-                        .enumerate()
-                        .filter_map(|(i, v)| v.map(|v| [(i + 1) as f64, v]))
-                        .collect();
-                    Plot::new(format!("carta_u_{k}"))
-                        .height(150.0)
-                        .allow_scroll(false)
-                        .show(ui, |pl| {
-                            pl.line(Line::new("taxa", valores));
-                            pl.line(Line::new("central", linha(&p.center)));
-                            pl.line(Line::new(tx("incidentes-lsc"), linha(&p.ucl)));
-                            pl.line(Line::new(tx("incidentes-lic"), linha(&p.lcl)));
-                        });
-                }
+                let estilo = utsim_posto_ui::carta::Estilo {
+                    altura: 150.0,
+                    valores: "taxa",
+                    lsc: tx("incidentes-lsc"),
+                    lic: tx("incidentes-lic"),
+                    nome_do_painel: false,
+                    sinais: false,
+                };
+                utsim_posto_ui::carta::desenhar(ui, "carta_u", &ch, &estilo);
             }
         }
     }
