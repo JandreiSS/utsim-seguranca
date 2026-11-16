@@ -124,8 +124,10 @@ Para que experimentos, otimização e as missões do UTSim Ensino leiam a qualid
 | `<recurso>.quase_conflitos` | recurso móvel, modelo com `zones` | quase-conflitos simulados de que participou |
 | `<pessoa>.sem_epi` | pessoa, modelo com `zones` | entradas em zona sem o EPI pedido |
 | `<pessoa>.tempo_zona.<zona>` e `<pessoa>.entradas_zona.<zona>` | idem | tempo e entradas em cada zona |
+| `<pessoa>.tempo_sob_carga` e `<pessoa>.entradas_sob_carga` | pessoa, modelo com pontes rolantes | tempo e entradas sob carga suspensa (todas as pontes) |
+| `<ponte>.tempo_sob_carga` e `<ponte>.entradas_sob_carga` | ponte rolante, modelo com pessoas | tempo e entradas de pessoas sob a carga dela |
 
-As contagens das saídas valem na janela de estatística, como `input`. A exposição usa as opções padrão (limiar de 1,5 m). Num modelo com zonas, o rastro é gravado para esse cálculo, o que custa memória mas não muda nenhum número da simulação.
+As contagens das saídas valem na janela de estatística, como `input`. A exposição usa as opções padrão (limiar de 1,5 m). Num modelo com zonas, ou com pontes rolantes e pessoas, o rastro é gravado para esse cálculo, o que custa memória mas não muda nenhum número da simulação. Na exposição (`Exposure::under_load`, `exposicao.sob_carga.tempo` e `exposicao.sob_carga.entradas`), o tempo sob carga vem por pessoa e ponte.
 
 ## 10. Blocos das abas do nó
 
