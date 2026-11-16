@@ -262,6 +262,7 @@ impl eframe::App for App {
             self.pedido.as_ref(),
             "seguranca",
             env!("CARGO_PKG_VERSION"),
+            None,
         );
     }
 }
