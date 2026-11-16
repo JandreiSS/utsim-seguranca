@@ -275,7 +275,7 @@ fn editor_acao(ui: &mut egui::Ui, a: &mut Acao, atrasada: bool) {
         ui.label(tx("inventario-responsavel"));
         ui.add(egui::TextEdit::singleline(&mut a.responsavel).desired_width(200.0));
         ui.label(tx("inventario-prazo_aaaa_mm_dd"));
-        ui.add(egui::TextEdit::singleline(&mut a.prazo).desired_width(100.0));
+        utsim_posto_ui::util::campo_data(ui, &mut a.prazo, None, 100.0);
         if atrasada {
             ui.colored_label(VERMELHO, tx("inventario-atrasada"));
         }
@@ -701,7 +701,7 @@ impl TelaInventario {
                 ui.separator();
                 ui.horizontal(|ui| {
                     ui.label(tx("inventario-data"));
-                    ui.add(egui::TextEdit::singleline(&mut n.data).desired_width(90.0));
+                    utsim_posto_ui::util::campo_data(ui, &mut n.data, None, 100.0);
                     ui.label(tx("inventario-p"));
                     combo_degrau(ui, ("rp", &p.id), &mut n.probabilidade, &m.probabilidade);
                     ui.label(tx("inventario-s"));

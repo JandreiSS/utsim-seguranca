@@ -347,7 +347,7 @@ impl TelaIncidentes {
             ui.group(|ui| {
                 ui.horizontal(|ui| {
                     ui.label(tx("incidentes-data_aaaa_mm_dd"));
-                    ui.add(egui::TextEdit::singleline(&mut i.data).desired_width(100.0));
+                    util::campo_data(ui, &mut i.data, None, 100.0);
                     ui.label(tx("incidentes-hora"));
                     ui.add(egui::TextEdit::singleline(&mut i.hora).desired_width(60.0));
                     ui.label(tx("incidentes-tipo"));
@@ -479,9 +479,9 @@ impl TelaIncidentes {
     fn indicadores_ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         ui.horizontal(|ui| {
             ui.label(tx("incidentes-de_aaaa_mm_dd"));
-            ui.add(egui::TextEdit::singleline(&mut self.de).desired_width(100.0));
+            util::campo_data(ui, &mut self.de, None, 100.0);
             ui.label(tx("incidentes-ate"));
-            ui.add(egui::TextEdit::singleline(&mut self.ate).desired_width(100.0));
+            util::campo_data(ui, &mut self.ate, Some(self.de.as_str()), 100.0);
             ui.label(tx("incidentes-taxas_por"));
             let mut b = self.config(s).base;
             if ui
