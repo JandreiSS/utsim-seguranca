@@ -28,6 +28,48 @@ fn media(ui: &mut egui::Ui, nome: &str, valores: &[f64]) {
     ui.end_row();
 }
 
+/// Pessoas sob a carga suspensa das pontes rolantes (primeira replicação). A meta é zero:
+/// qualquer tempo sob a carga aparece em vermelho.
+fn sob_carga_ui(ui: &mut egui::Ui, reps: &[Exposure]) {
+    let vermelho = egui::Color32::from_rgb(230, 90, 80);
+    let total: f64 = reps.iter().map(Exposure::under_load_time).sum();
+    ui.add_space(4.0);
+    ui.strong(tx("exposicao-sob_carga_suspensa_primeira"));
+    if total > 0.0 {
+        ui.colored_label(vermelho, tx("exposicao-alguem_ficou_sob_a_carga"));
+    } else {
+        ui.label(tx("exposicao-ninguem_sob_a_carga"));
+    }
+    let Some(e0) = reps.first() else {
+        return;
+    };
+    egui::Grid::new("exp_sob_carga")
+        .striped(true)
+        .show(ui, |ui| {
+            for c in [
+                tx("exposicao-ponte"),
+                tx("exposicao-pessoa"),
+                tx("exposicao-tempo_s"),
+                tx("exposicao-entradas"),
+            ] {
+                ui.strong(c);
+            }
+            ui.end_row();
+            for c in &e0.under_load {
+                ui.label(&c.crane);
+                ui.label(&c.person);
+                let t = format!("{:.1}", c.time);
+                if c.time > 0.0 {
+                    ui.colored_label(vermelho, t);
+                } else {
+                    ui.label(t);
+                }
+                ui.label(c.entries.to_string());
+                ui.end_row();
+            }
+        });
+}
+
 impl TelaExposicao {
     pub fn rodar(&mut self, s: &mut Sessao) {
         let Some(u) = s.unidade.as_ref() else {
@@ -148,6 +190,17 @@ impl TelaExposicao {
             .iter()
             .map(|e| e.near_miss_count() as f64)
             .collect();
+        let tem_ponte = r.replicacoes.iter().any(|e| !e.under_load.is_empty());
+        let sob_carga: Vec<f64> = r
+            .replicacoes
+            .iter()
+            .map(Exposure::under_load_time)
+            .collect();
+        let entradas_carga: Vec<f64> = r
+            .replicacoes
+            .iter()
+            .map(|e| f64::from(e.under_load_entries()))
+            .collect();
         egui::Grid::new("exp_resumo").striped(true).show(ui, |ui| {
             ui.strong(tx("exposicao-indicador"));
             ui.strong(tx("exposicao-media_ic_95"));
@@ -155,7 +208,18 @@ impl TelaExposicao {
             media(ui, tx("exposicao-tempo_das_pessoas_em_zona"), &tempo);
             media(ui, tx("exposicao-entradas_em_zona_sem_o"), &sem_epi);
             media(ui, tx("exposicao-quase_conflitos_simulados"), &quase);
+            if tem_ponte {
+                media(ui, tx("exposicao-tempo_sob_carga_suspensa"), &sob_carga);
+                media(
+                    ui,
+                    tx("exposicao-entradas_sob_carga_suspensa"),
+                    &entradas_carga,
+                );
+            }
         });
+        if tem_ponte {
+            sob_carga_ui(ui, &r.replicacoes);
+        }
         if let Some(e0) = r.replicacoes.first() {
             ui.add_space(4.0);
             ui.strong(tx("exposicao-por_zona_e_pessoa_primeira"));
