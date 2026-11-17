@@ -122,6 +122,7 @@ fn datas_dos_incidentes_picture() {
     app.incidentes.aba = Aba::Registro;
     app.incidentes.novo = Some(Incidente {
         data: "31/02/2026".into(),
+        hora: "25:10".into(),
         ..Incidente::default()
     });
     fotos.push(("seguranca_data_invalida", cap.imagem(3, |ui| app.draw(ui))));

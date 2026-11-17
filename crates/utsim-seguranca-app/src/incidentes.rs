@@ -349,7 +349,7 @@ impl TelaIncidentes {
                     ui.label(tx("incidentes-data_aaaa_mm_dd"));
                     util::campo_data(ui, &mut i.data, None, 100.0);
                     ui.label(tx("incidentes-hora"));
-                    ui.add(egui::TextEdit::singleline(&mut i.hora).desired_width(60.0));
+                    utsim_ui_tema::campos::CampoHora::new(&mut i.hora).mostrar(ui);
                     ui.label(tx("incidentes-tipo"));
                     egui::ComboBox::from_id_salt("tipo_incidente")
                         .selected_text(i.tipo.nome())
