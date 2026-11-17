@@ -103,3 +103,41 @@ fn ferramentas_ishikawa_picture() {
             .unwrap();
     }
 }
+
+/// The date fields of "Incidentes" use the common date field: an impossible date and an end
+/// before the start get a red border; `DD/MM/AAAA` is accepted.
+#[test]
+fn datas_dos_incidentes_picture() {
+    use utsim_seguranca_app::incidentes::Aba;
+    use utsim_seguranca_core::incidentes::Incidente;
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = App::new(Some(dir.path().join("cfg.json")));
+    assert!(
+        app.sessao
+            .criar(&dir.path().join("unidade"), "Fábrica", "Ana")
+    );
+    app.tela = Tela::Incidentes;
+    let mut cap = Captura::new(Context::default(), vec2(1280.0, 520.0));
+    let mut fotos = Vec::new();
+    app.incidentes.aba = Aba::Registro;
+    app.incidentes.novo = Some(Incidente {
+        data: "31/02/2026".into(),
+        ..Incidente::default()
+    });
+    fotos.push(("seguranca_data_invalida", cap.imagem(3, |ui| app.draw(ui))));
+    app.incidentes.novo = None;
+    app.incidentes.aba = Aba::Indicadores;
+    app.incidentes.de = "01/03/2026".into();
+    app.incidentes.ate = "2026-02-10".into();
+    fotos.push((
+        "seguranca_periodo_invertido",
+        cap.imagem(3, |ui| app.draw(ui)),
+    ));
+    if let Some(d) = std::env::var_os("UTSIM_CAPTURAS") {
+        let d = std::path::PathBuf::from(d);
+        std::fs::create_dir_all(&d).unwrap();
+        for (nome, img) in &fotos {
+            img.salvar_png(&d.join(format!("{nome}.png"))).unwrap();
+        }
+    }
+}
