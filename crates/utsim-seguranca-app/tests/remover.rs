@@ -18,6 +18,12 @@ fn quadro(app: &mut App, ctx: &egui::Context) -> String {
     texto
 }
 
+/// Põe o botão de remover `(tag, id)` no estado "à espera de confirmação", como depois do
+/// primeiro clique (o tema guarda esse estado na memória do egui).
+fn pedir_confirmacao(ctx: &egui::Context, tag: &str, id: &str) {
+    ctx.data_mut(|d| d.insert_temp(egui::Id::new(("utsim_botao_confirmado", (tag, id))), true));
+}
+
 #[test]
 fn incidente_e_inspecao_saem_da_unidade_depois_de_confirmar() {
     utsim_idiomas::definir(utsim_idiomas::Idioma::PtBr);
@@ -67,11 +73,11 @@ fn incidente_e_inspecao_saem_da_unidade_depois_de_confirmar() {
     let texto = quadro(&mut app, &ctx);
     assert!(texto.contains("Corte no dedo"));
     assert!(texto.contains("Remover"));
-    assert!(!texto.contains("Confirmar remoção"));
-    app.incidentes.remover = Some(inc.clone());
+    assert!(!texto.contains("Confirmar"));
+    pedir_confirmacao(&ctx, "incidente", &inc);
     let texto = quadro(&mut app, &ctx);
-    assert!(texto.contains("Confirmar remoção"), "{texto}");
-    app.incidentes.remover_incidente(&mut app.sessao, &inc);
+    assert!(texto.contains("Confirmar"), "{texto}");
+    app.incidentes.remover(&mut app.sessao, &inc);
     let texto = quadro(&mut app, &ctx);
     assert!(!texto.contains("Corte no dedo"));
 
@@ -79,9 +85,10 @@ fn incidente_e_inspecao_saem_da_unidade_depois_de_confirmar() {
     app.tela = Tela::Checklist;
     let texto = quadro(&mut app, &ctx);
     assert!(texto.contains("Prensa 2"));
-    app.checklist.remover = Some(insp.clone());
+    assert!(!texto.contains("Confirmar"));
+    pedir_confirmacao(&ctx, "inspecao", &insp);
     let texto = quadro(&mut app, &ctx);
-    assert!(texto.contains("Confirmar remoção"), "{texto}");
+    assert!(texto.contains("Confirmar"), "{texto}");
     let aberta = utsim_seguranca_app::checklist::TelaChecklist::inspecoes(&app.sessao);
     app.checklist.inspecao = aberta.into_iter().next();
     app.checklist.remover_inspecao(&mut app.sessao, &insp);

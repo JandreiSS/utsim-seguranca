@@ -365,3 +365,5 @@ relatorio-postos_no_relatorio = Workstations in the report:
 relatorio-gravar_html_do_inventario = Save inventory HTML
 relatorio-relatorio_gravado_em = Report saved to { $p }
 relatorio-gravar_pdf_do_inventario = Save inventory PDF
+inventario-levar_ao_no_grave_antes = Save or discard the hazard changes first.
+epi-escolha = choose

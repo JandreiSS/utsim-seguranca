@@ -11,8 +11,6 @@ const VERMELHO: Color32 = Color32::from_rgb(230, 90, 80);
 #[derive(Default)]
 pub struct TelaEpi {
     pub edicao: Option<Epi>,
-    /// O EPI à espera da confirmação de remoção.
-    pub remover: Option<String>,
 }
 
 impl TelaEpi {
@@ -99,12 +97,10 @@ impl TelaEpi {
                         if ui.small_button(tx("epi-editar")).clicked() {
                             editar = Some(e.clone());
                         }
-                        if util::remover_confirmado(
+                        if utsim_ui_tema::campos::botao_confirmado(
                             ui,
-                            &mut self.remover,
-                            &e.id,
                             tx("epi-remover"),
-                            true,
+                            ("epi", &e.id),
                         ) {
                             tirar = Some(e.id.clone());
                         }
@@ -129,7 +125,7 @@ impl TelaEpi {
                     ui.label(tx("epi-tipo"));
                     egui::ComboBox::from_id_salt("tipo_epi")
                         .selected_text(if e.tipo.is_empty() {
-                            "escolha"
+                            tx("epi-escolha")
                         } else {
                             &e.tipo
                         })
@@ -153,7 +149,7 @@ impl TelaEpi {
                     ui.label(tx("epi-ca_numero_digitado_o_programa"));
                     ui.add(egui::TextEdit::singleline(&mut e.ca).desired_width(100.0));
                     ui.label(tx("epi-validade_do_ca_aaaa_mm"));
-                    ui.add(egui::TextEdit::singleline(&mut e.validade_ca).desired_width(100.0));
+                    util::campo_data(ui, &mut e.validade_ca, None, 100.0);
                 });
                 ui.horizontal(|ui| {
                     let mut tem = e.troca_dias.is_some();

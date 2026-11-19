@@ -365,3 +365,5 @@ relatorio-postos_no_relatorio = Postos no relatório:
 relatorio-gravar_html_do_inventario = Gravar HTML do inventário
 relatorio-relatorio_gravado_em = Relatório gravado em { $p }
 relatorio-gravar_pdf_do_inventario = Gravar PDF do inventário
+inventario-levar_ao_no_grave_antes = Grave ou descarte as mudanças do perigo antes.
+epi-escolha = escolha

@@ -21,8 +21,6 @@ pub struct TelaChecklist {
     pub nome_modelo: String,
     /// A inspeção em andamento (só vai para a unidade ao clicar em Gravar).
     pub inspecao: Option<InspecaoMaquina>,
-    /// A inspeção gravada à espera da confirmação de remoção.
-    pub remover: Option<String>,
 }
 
 impl Default for TelaChecklist {
@@ -34,7 +32,6 @@ impl Default for TelaChecklist {
             arquivo_csv: String::new(),
             nome_modelo: String::new(),
             inspecao: None,
-            remover: None,
         }
     }
 }
@@ -301,12 +298,10 @@ impl TelaChecklist {
                 if ui.small_button(tx("checklist-abrir")).clicked() {
                     abrir = Some(g.clone());
                 }
-                if util::remover_confirmado(
+                if utsim_ui_tema::campos::botao_confirmado(
                     ui,
-                    &mut self.remover,
-                    &g.id,
                     tx("checklist-remover"),
-                    true,
+                    ("inspecao", &g.id),
                 ) {
                     tirar = Some(g.id.clone());
                 }

@@ -4,7 +4,9 @@ use crate::texto::{fx, tx, vx};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::SystemTime;
-use utsim_ui_tema::campos::texto_com_rotulo as campo;
+use utsim_ui_tema::campos::{
+    botao_confirmado, texto_com_rotulo as campo, texto_longo_com_rotulo as campo_longo,
+};
 
 use eframe::egui::{self, Color32, RichText};
 use utsim_edit::Document;
@@ -51,8 +53,6 @@ pub struct TelaInventario {
     modelo_do_posto: Option<PathBuf>,
     /// Pedido ao modelo (abrir o nó, levar um perigo), atendido pelo app com a tela Modelo.
     pub pedido: Option<PedidoNo>,
-    /// O perigo ou a ação à espera da confirmação de remoção.
-    pub remover: Option<String>,
 }
 
 /// O que o inventário pede ao modelo ligado ao posto.
@@ -272,7 +272,7 @@ fn editor_acao(ui: &mut egui::Ui, a: &mut Acao, atrasada: bool) {
                 ui.selectable_value(&mut a.eficaz, Some(false), tx("inventario-nao"));
             });
     });
-    campo(ui, tx("inventario-descricao"), &mut a.descricao);
+    campo_longo(ui, tx("inventario-descricao"), &mut a.descricao);
     ui.horizontal(|ui| {
         ui.label(tx("inventario-responsavel"));
         ui.add(egui::TextEdit::singleline(&mut a.responsavel).desired_width(200.0));
@@ -463,11 +463,11 @@ impl TelaInventario {
                             ui.weak(fx("inventario-origem", &[("origem", vx(&d.origem))]));
                         }
                     });
-                    campo(ui, tx("inventario-descricao"), &mut d.descricao);
+                    campo_longo(ui, tx("inventario-descricao"), &mut d.descricao);
                     campo(ui, tx("inventario-fonte"), &mut d.fonte);
-                    campo(ui, tx("inventario-circunstancia"), &mut d.circunstancia);
-                    campo(ui, tx("inventario-possiveis_lesoes"), &mut d.lesoes);
-                    botoes_perigo(ui, d, p, cmds, &mut self.remover);
+                    campo_longo(ui, tx("inventario-circunstancia"), &mut d.circunstancia);
+                    campo_longo(ui, tx("inventario-possiveis_lesoes"), &mut d.lesoes);
+                    botoes_perigo(ui, d, p, cmds);
                     if let Some(m) = &self.modelo_do_posto
                         && ui
                             .add_enabled(!sujo, egui::Button::new(tx("inventario-levar_ao_no")))
@@ -475,6 +475,7 @@ impl TelaInventario {
                                 "inventario-levar_ao_no_dica",
                                 &[("objeto", vx(&objeto))],
                             ))
+                            .on_disabled_hover_text(tx("inventario-levar_ao_no_grave_antes"))
                             .clicked()
                     {
                         self.pedido = Some(PedidoNo::Levar {
@@ -502,10 +503,10 @@ impl TelaInventario {
                     ui.label(tx("inventario-grupo"));
                     combo_grupo(ui, "grupo_novo", &mut n.grupo);
                 });
-                campo(ui, tx("inventario-descricao"), &mut n.descricao);
+                campo_longo(ui, tx("inventario-descricao"), &mut n.descricao);
                 campo(ui, tx("inventario-fonte"), &mut n.fonte);
-                campo(ui, tx("inventario-circunstancia"), &mut n.circunstancia);
-                campo(ui, tx("inventario-possiveis_lesoes"), &mut n.lesoes);
+                campo_longo(ui, tx("inventario-circunstancia"), &mut n.circunstancia);
+                campo_longo(ui, tx("inventario-possiveis_lesoes"), &mut n.lesoes);
                 let mut fechar = false;
                 ui.horizontal(|ui| {
                     if ui
@@ -558,14 +559,14 @@ impl TelaInventario {
                     ui.strong(&d.descricao);
                     selo(ui, m, d.probabilidade, d.severidade);
                 });
-                campo(ui, tx("inventario-controles_existentes"), &mut d.controles);
+                campo_longo(ui, tx("inventario-controles_existentes"), &mut d.controles);
                 ui.horizontal(|ui| {
                     ui.label(tx("inventario-probabilidade"));
                     combo_degrau(ui, ("prob", &p.id), &mut d.probabilidade, &m.probabilidade);
                     ui.label(tx("inventario-severidade"));
                     combo_degrau(ui, ("sev", &p.id), &mut d.severidade, &m.severidade);
                 });
-                botoes_perigo(ui, d, p, cmds, &mut self.remover);
+                botoes_perigo(ui, d, p, cmds);
             });
         }
     }
@@ -605,13 +606,7 @@ impl TelaInventario {
                         if sujo && ui.button(tx("inventario-descartar_mudancas")).clicked() {
                             *d = a.clone();
                         }
-                        if util::remover_confirmado(
-                            ui,
-                            &mut self.remover,
-                            &a.id,
-                            tx("inventario-remover_acao"),
-                            false,
-                        ) {
+                        if botao_confirmado(ui, tx("inventario-remover_acao"), ("acao", &a.id)) {
                             cmds.push(Cmd::RemoverAcao(a.id.clone()));
                         }
                     });
@@ -715,7 +710,7 @@ impl TelaInventario {
                     ui.label(tx("inventario-s"));
                     combo_degrau(ui, ("rs", &p.id), &mut n.severidade, &m.severidade);
                 });
-                campo(ui, tx("inventario-nota"), &mut n.nota);
+                campo_longo(ui, tx("inventario-nota"), &mut n.nota);
                 if ui.button(tx("inventario-registrar_reavaliacao")).clicked() {
                     cmds.push(Cmd::GravarReav(n.clone()));
                 }
@@ -783,13 +778,7 @@ fn rascunho<'a, T: Clone + PartialEq>(
     &mut e.1
 }
 
-fn botoes_perigo(
-    ui: &mut egui::Ui,
-    d: &mut Perigo,
-    original: &Perigo,
-    cmds: &mut Vec<Cmd>,
-    remover: &mut Option<String>,
-) {
+fn botoes_perigo(ui: &mut egui::Ui, d: &mut Perigo, original: &Perigo, cmds: &mut Vec<Cmd>) {
     let sujo = d != original;
     ui.horizontal(|ui| {
         if ui
@@ -801,12 +790,10 @@ fn botoes_perigo(
         if sujo && ui.button(tx("inventario-descartar_mudancas")).clicked() {
             *d = original.clone();
         }
-        if util::remover_confirmado(
+        if botao_confirmado(
             ui,
-            remover,
-            &original.id,
             tx("inventario-remover_perigo"),
-            false,
+            ("perigo", &original.id),
         ) {
             cmds.push(Cmd::RemoverPerigo(original.id.clone()));
         }

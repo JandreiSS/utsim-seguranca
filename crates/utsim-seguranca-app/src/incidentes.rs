@@ -11,7 +11,9 @@ use utsim_seguranca_core::incidentes::{
     CONFIG_INDICADORES, Config, HORAS, HorasHomem, INCIDENTES, Incidente, Indicadores, Tipo,
     carta_mensal, indicadores,
 };
-use utsim_ui_tema::campos::texto_com_rotulo as campo;
+use utsim_ui_tema::campos::{
+    botao_confirmado, ler_numero, texto_com_rotulo as campo, texto_longo_com_rotulo as campo_longo,
+};
 
 const VERMELHO: Color32 = Color32::from_rgb(230, 90, 80);
 
@@ -43,8 +45,6 @@ pub struct TelaIncidentes {
     pub escritores: String,
     pub pessoa: Pessoa,
     pub confirmar: Option<String>,
-    /// O incidente à espera da confirmação de remoção.
-    pub remover: Option<String>,
 }
 
 impl TelaIncidentes {
@@ -117,17 +117,6 @@ impl TelaIncidentes {
             true
         } else {
             false
-        }
-    }
-
-    /// Remove um incidente da unidade (as pessoas da pasta restrita ficam).
-    pub fn remover_incidente(&mut self, s: &mut Sessao, id: &str) {
-        if let Some(u) = s.unidade.as_mut() {
-            let r = u.remover(INCIDENTES, id);
-            s.resultado(r, tx("incidentes-incidente_removido"));
-        }
-        if self.novo.as_ref().is_some_and(|i| i.id == id) {
-            self.novo = None;
         }
     }
 
@@ -251,6 +240,19 @@ impl TelaIncidentes {
         }
     }
 
+    pub fn remover(&mut self, s: &mut Sessao, id: &str) {
+        let Some(u) = s.unidade.as_mut() else {
+            return;
+        };
+        let r = u.remover(INCIDENTES, id);
+        if s.resultado(r, tx("incidentes-incidente_removido"))
+            .is_some()
+            && self.novo.as_ref().is_some_and(|n| n.id == id)
+        {
+            self.novo = None;
+        }
+    }
+
     pub fn anonimizar(&mut self, s: &mut Sessao, codigo: &str) -> bool {
         let Some(r) = self.restrita(s) else {
             return false;
@@ -307,7 +309,8 @@ impl TelaIncidentes {
         if lista.is_empty() {
             ui.weak(tx("incidentes-nenhum_incidente_registrado"));
         } else {
-            let (mut editar, mut tirar) = (None, None);
+            let mut editar = None;
+            let mut tirar = None;
             egui::Grid::new("grade_incidentes")
                 .striped(true)
                 .show(ui, |ui| {
@@ -342,13 +345,8 @@ impl TelaIncidentes {
                             if ui.small_button(tx("incidentes-editar")).clicked() {
                                 editar = Some(i.clone());
                             }
-                            if util::remover_confirmado(
-                                ui,
-                                &mut self.remover,
-                                &i.id,
-                                tx("incidentes-remover"),
-                                true,
-                            ) {
+                            if botao_confirmado(ui, tx("incidentes-remover"), ("incidente", &i.id))
+                            {
                                 tirar = Some(i.id.clone());
                             }
                         });
@@ -359,7 +357,7 @@ impl TelaIncidentes {
                 self.novo = Some(i);
             }
             if let Some(id) = tirar {
-                self.remover_incidente(s, &id);
+                self.remover(s, &id);
             }
         }
         if ui.button(tx("incidentes-novo_incidente")).clicked() {
@@ -376,7 +374,7 @@ impl TelaIncidentes {
                     ui.label(tx("incidentes-data_aaaa_mm_dd"));
                     util::campo_data(ui, &mut i.data, None, 100.0);
                     ui.label(tx("incidentes-hora"));
-                    ui.add(egui::TextEdit::singleline(&mut i.hora).desired_width(60.0));
+                    utsim_ui_tema::campos::CampoHora::new(&mut i.hora).mostrar(ui);
                     ui.label(tx("incidentes-tipo"));
                     egui::ComboBox::from_id_salt("tipo_incidente")
                         .selected_text(i.tipo.nome())
@@ -407,8 +405,8 @@ impl TelaIncidentes {
                     ui.label(tx("incidentes-zona_do_layout"));
                     ui.add(egui::TextEdit::singleline(&mut i.zona).desired_width(120.0));
                 });
-                campo(ui, tx("incidentes-o_que_aconteceu"), &mut i.descricao);
-                campo(ui, tx("incidentes-acoes_tomadas"), &mut i.acoes);
+                campo_longo(ui, tx("incidentes-o_que_aconteceu"), &mut i.descricao);
+                campo_longo(ui, tx("incidentes-acoes_tomadas"), &mut i.acoes);
                 let mut tira = None;
                 for (k, c) in i.causas.iter().enumerate() {
                     ui.horizontal(|ui| {
@@ -436,9 +434,17 @@ impl TelaIncidentes {
                 });
                 ui.horizontal(|ui| {
                     ui.label(tx("incidentes-dias_perdidos"));
-                    ui.add(egui::DragValue::new(&mut i.dias_perdidos).range(0.0..=10_000.0));
+                    ui.add(
+                        egui::DragValue::new(&mut i.dias_perdidos)
+                            .range(0.0..=10_000.0)
+                            .custom_parser(ler_numero),
+                    );
                     ui.label(tx("incidentes-dias_debitados_tabela_da_empresa"));
-                    ui.add(egui::DragValue::new(&mut i.dias_debitados).range(0.0..=100_000.0));
+                    ui.add(
+                        egui::DragValue::new(&mut i.dias_debitados)
+                            .range(0.0..=100_000.0)
+                            .custom_parser(ler_numero),
+                    );
                 });
                 ui.label(tx("incidentes-pessoas_envolvidas_da_pasta_restrita"));
                 if pessoas.is_empty() {
@@ -496,7 +502,11 @@ impl TelaIncidentes {
             ui.label(tx("incidentes-mes_aaaa_mm"));
             ui.add(egui::TextEdit::singleline(&mut self.horas.mes).desired_width(80.0));
             ui.label(tx("incidentes-horas"));
-            ui.add(egui::DragValue::new(&mut self.horas.horas).speed(10.0));
+            ui.add(
+                egui::DragValue::new(&mut self.horas.horas)
+                    .speed(10.0)
+                    .custom_parser(ler_numero),
+            );
             if ui.button(tx("incidentes-gravar_horas")).clicked() {
                 self.gravar_horas(s);
             }
@@ -515,6 +525,7 @@ impl TelaIncidentes {
                 .add(
                     egui::DragValue::new(&mut b)
                         .speed(1000.0)
+                        .custom_parser(ler_numero)
                         .suffix(tx("incidentes-h")),
                 )
                 .changed()
@@ -701,7 +712,11 @@ impl TelaIncidentes {
                     ui.label(&p.codigo);
                     ui.label(&p.nome);
                     ui.label(&p.setor);
-                    ui.label(if p.consentimento { "sim" } else { "não" });
+                    ui.label(if p.consentimento {
+                        tx("inventario-sim")
+                    } else {
+                        tx("inventario-nao")
+                    });
                     if pode && !p.anonimizada {
                         if self.confirmar.as_deref() == Some(p.codigo.as_str()) {
                             ui.horizontal(|ui| {
