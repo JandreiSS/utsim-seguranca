@@ -21,6 +21,8 @@ pub struct TelaChecklist {
     pub nome_modelo: String,
     /// A inspeção em andamento (só vai para a unidade ao clicar em Gravar).
     pub inspecao: Option<InspecaoMaquina>,
+    /// A inspeção gravada à espera da confirmação de remoção.
+    pub remover: Option<String>,
 }
 
 impl Default for TelaChecklist {
@@ -32,6 +34,7 @@ impl Default for TelaChecklist {
             arquivo_csv: String::new(),
             nome_modelo: String::new(),
             inspecao: None,
+            remover: None,
         }
     }
 }
@@ -62,6 +65,17 @@ impl TelaChecklist {
             .unwrap_or_default();
         v.sort_by(|a, b| b.data.cmp(&a.data).then(a.id.cmp(&b.id)));
         v
+    }
+
+    /// Remove uma inspeção gravada; se era a aberta, ela fecha.
+    pub fn remover_inspecao(&mut self, s: &mut Sessao, id: &str) {
+        if let Some(u) = s.unidade.as_mut() {
+            let r = u.remover(INSPECOES, id);
+            s.resultado(r, tx("checklist-inspecao_removida"));
+        }
+        if self.inspecao.as_ref().is_some_and(|i| i.id == id) {
+            self.inspecao = None;
+        }
     }
 
     pub fn usar_proprio(&mut self) {
@@ -276,7 +290,7 @@ impl TelaChecklist {
         if gravadas.is_empty() {
             ui.weak(tx("checklist-nenhuma_inspecao_ainda"));
         }
-        let mut abrir = None;
+        let (mut abrir, mut tirar) = (None, None);
         for g in &gravadas {
             ui.horizontal(|ui| {
                 let nome = postos
@@ -287,10 +301,22 @@ impl TelaChecklist {
                 if ui.small_button(tx("checklist-abrir")).clicked() {
                     abrir = Some(g.clone());
                 }
+                if util::remover_confirmado(
+                    ui,
+                    &mut self.remover,
+                    &g.id,
+                    tx("checklist-remover"),
+                    true,
+                ) {
+                    tirar = Some(g.id.clone());
+                }
             });
         }
         if let Some(g) = abrir {
             self.abrir(s, g);
+        }
+        if let Some(id) = tirar {
+            self.remover_inspecao(s, &id);
         }
 
         // Nova inspeção.

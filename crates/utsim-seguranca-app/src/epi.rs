@@ -11,6 +11,8 @@ const VERMELHO: Color32 = Color32::from_rgb(230, 90, 80);
 #[derive(Default)]
 pub struct TelaEpi {
     pub edicao: Option<Epi>,
+    /// O EPI à espera da confirmação de remoção.
+    pub remover: Option<String>,
 }
 
 impl TelaEpi {
@@ -97,7 +99,13 @@ impl TelaEpi {
                         if ui.small_button(tx("epi-editar")).clicked() {
                             editar = Some(e.clone());
                         }
-                        if ui.small_button(tx("epi-remover")).clicked() {
+                        if util::remover_confirmado(
+                            ui,
+                            &mut self.remover,
+                            &e.id,
+                            tx("epi-remover"),
+                            true,
+                        ) {
                             tirar = Some(e.id.clone());
                         }
                     });

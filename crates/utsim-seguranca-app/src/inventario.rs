@@ -51,6 +51,8 @@ pub struct TelaInventario {
     modelo_do_posto: Option<PathBuf>,
     /// Pedido ao modelo (abrir o nó, levar um perigo), atendido pelo app com a tela Modelo.
     pub pedido: Option<PedidoNo>,
+    /// O perigo ou a ação à espera da confirmação de remoção.
+    pub remover: Option<String>,
 }
 
 /// O que o inventário pede ao modelo ligado ao posto.
@@ -465,7 +467,7 @@ impl TelaInventario {
                     campo(ui, tx("inventario-fonte"), &mut d.fonte);
                     campo(ui, tx("inventario-circunstancia"), &mut d.circunstancia);
                     campo(ui, tx("inventario-possiveis_lesoes"), &mut d.lesoes);
-                    botoes_perigo(ui, d, p, cmds);
+                    botoes_perigo(ui, d, p, cmds, &mut self.remover);
                     if let Some(m) = &self.modelo_do_posto
                         && ui
                             .add_enabled(!sujo, egui::Button::new(tx("inventario-levar_ao_no")))
@@ -563,7 +565,7 @@ impl TelaInventario {
                     ui.label(tx("inventario-severidade"));
                     combo_degrau(ui, ("sev", &p.id), &mut d.severidade, &m.severidade);
                 });
-                botoes_perigo(ui, d, p, cmds);
+                botoes_perigo(ui, d, p, cmds, &mut self.remover);
             });
         }
     }
@@ -603,7 +605,13 @@ impl TelaInventario {
                         if sujo && ui.button(tx("inventario-descartar_mudancas")).clicked() {
                             *d = a.clone();
                         }
-                        if ui.button(tx("inventario-remover_acao")).clicked() {
+                        if util::remover_confirmado(
+                            ui,
+                            &mut self.remover,
+                            &a.id,
+                            tx("inventario-remover_acao"),
+                            false,
+                        ) {
                             cmds.push(Cmd::RemoverAcao(a.id.clone()));
                         }
                     });
@@ -775,7 +783,13 @@ fn rascunho<'a, T: Clone + PartialEq>(
     &mut e.1
 }
 
-fn botoes_perigo(ui: &mut egui::Ui, d: &mut Perigo, original: &Perigo, cmds: &mut Vec<Cmd>) {
+fn botoes_perigo(
+    ui: &mut egui::Ui,
+    d: &mut Perigo,
+    original: &Perigo,
+    cmds: &mut Vec<Cmd>,
+    remover: &mut Option<String>,
+) {
     let sujo = d != original;
     ui.horizontal(|ui| {
         if ui
@@ -787,7 +801,13 @@ fn botoes_perigo(ui: &mut egui::Ui, d: &mut Perigo, original: &Perigo, cmds: &mu
         if sujo && ui.button(tx("inventario-descartar_mudancas")).clicked() {
             *d = original.clone();
         }
-        if ui.button(tx("inventario-remover_perigo")).clicked() {
+        if util::remover_confirmado(
+            ui,
+            remover,
+            &original.id,
+            tx("inventario-remover_perigo"),
+            false,
+        ) {
             cmds.push(Cmd::RemoverPerigo(original.id.clone()));
         }
     });

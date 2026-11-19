@@ -43,6 +43,8 @@ pub struct TelaIncidentes {
     pub escritores: String,
     pub pessoa: Pessoa,
     pub confirmar: Option<String>,
+    /// O incidente à espera da confirmação de remoção.
+    pub remover: Option<String>,
 }
 
 impl TelaIncidentes {
@@ -115,6 +117,17 @@ impl TelaIncidentes {
             true
         } else {
             false
+        }
+    }
+
+    /// Remove um incidente da unidade (as pessoas da pasta restrita ficam).
+    pub fn remover_incidente(&mut self, s: &mut Sessao, id: &str) {
+        if let Some(u) = s.unidade.as_mut() {
+            let r = u.remover(INCIDENTES, id);
+            s.resultado(r, tx("incidentes-incidente_removido"));
+        }
+        if self.novo.as_ref().is_some_and(|i| i.id == id) {
+            self.novo = None;
         }
     }
 
@@ -294,7 +307,7 @@ impl TelaIncidentes {
         if lista.is_empty() {
             ui.weak(tx("incidentes-nenhum_incidente_registrado"));
         } else {
-            let mut editar = None;
+            let (mut editar, mut tirar) = (None, None);
             egui::Grid::new("grade_incidentes")
                 .striped(true)
                 .show(ui, |ui| {
@@ -325,14 +338,28 @@ impl TelaIncidentes {
                             .map(|c| Self::rotulo(&pessoas, aberta, c))
                             .collect();
                         ui.label(nomes.join(", "));
-                        if ui.small_button(tx("incidentes-editar")).clicked() {
-                            editar = Some(i.clone());
-                        }
+                        ui.horizontal(|ui| {
+                            if ui.small_button(tx("incidentes-editar")).clicked() {
+                                editar = Some(i.clone());
+                            }
+                            if util::remover_confirmado(
+                                ui,
+                                &mut self.remover,
+                                &i.id,
+                                tx("incidentes-remover"),
+                                true,
+                            ) {
+                                tirar = Some(i.id.clone());
+                            }
+                        });
                         ui.end_row();
                     }
                 });
             if let Some(i) = editar {
                 self.novo = Some(i);
+            }
+            if let Some(id) = tirar {
+                self.remover_incidente(s, &id);
             }
         }
         if ui.button(tx("incidentes-novo_incidente")).clicked() {
