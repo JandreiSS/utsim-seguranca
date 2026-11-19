@@ -357,3 +357,7 @@ relatorio-postos_no_relatorio = Postazioni nel rapporto:
 relatorio-gravar_html_do_inventario = Salva HTML dell'inventario
 relatorio-relatorio_gravado_em = Rapporto salvato in { $p }
 relatorio-gravar_pdf_do_inventario = Salva PDF dell'inventario
+incidentes-remover = Rimuovi
+incidentes-incidente_removido = Incidente rimosso.
+inventario-levar_ao_no_grave_antes = Salva o scarta prima le modifiche del pericolo.
+epi-escolha = scegli

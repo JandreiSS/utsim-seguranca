@@ -142,3 +142,66 @@ fn datas_dos_incidentes_picture() {
         }
     }
 }
+
+/// Remover um incidente pede confirmação; a descrição tem várias linhas.
+#[test]
+fn remover_incidente_picture() {
+    use utsim_seguranca_app::incidentes::Aba;
+    use utsim_seguranca_core::incidentes::{INCIDENTES, Incidente};
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = App::new(Some(dir.path().join("cfg.json")));
+    assert!(
+        app.sessao
+            .criar(&dir.path().join("unidade"), "Fábrica", "Ana")
+    );
+    app.tela = Tela::Incidentes;
+    app.incidentes.aba = Aba::Registro;
+    app.incidentes.novo = Some(Incidente {
+        data: "2026-11-10".into(),
+        hora: "09:30".into(),
+        descricao: "Corte na mão ao trocar a lâmina.\nUsava luva de vaqueta.".into(),
+        ..Incidente::default()
+    });
+    assert!(app.incidentes.gravar(&mut app.sessao));
+    let lista: Vec<Incidente> = app
+        .sessao
+        .unidade
+        .as_ref()
+        .unwrap()
+        .estado()
+        .lista(INCIDENTES);
+    assert_eq!(lista.len(), 1);
+    let id = lista[0].id.clone();
+    let ctx = Context::default();
+    ctx.data_mut(|d| {
+        d.insert_temp(
+            eframe::egui::Id::new(("utsim_botao_confirmado", ("incidente", &id))),
+            true,
+        )
+    });
+    let mut cap = Captura::new(ctx, vec2(1280.0, 620.0));
+    let mut fotos = vec![(
+        "seguranca_remover_incidente",
+        cap.imagem(3, |ui| app.draw(ui)),
+    )];
+    app.incidentes.remover(&mut app.sessao, &id);
+    let resta: Vec<Incidente> = app
+        .sessao
+        .unidade
+        .as_ref()
+        .unwrap()
+        .estado()
+        .lista(INCIDENTES);
+    assert!(resta.is_empty());
+    fotos.push((
+        "seguranca_incidente_removido",
+        cap.imagem(3, |ui| app.draw(ui)),
+    ));
+    if let Some(d) = std::env::var_os("UTSIM_CAPTURAS") {
+        let d = std::path::PathBuf::from(d);
+        std::fs::create_dir_all(&d).unwrap();
+        for (nome, img) in &fotos {
+            img.salvar_png(&d.join(format!("{nome}.png"))).unwrap();
+        }
+    }
+}

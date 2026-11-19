@@ -357,3 +357,7 @@ relatorio-postos_no_relatorio = Postes dans le rapport :
 relatorio-gravar_html_do_inventario = Enregistrer le HTML de l'inventaire
 relatorio-relatorio_gravado_em = Rapport enregistré dans { $p }
 relatorio-gravar_pdf_do_inventario = Enregistrer le PDF de l'inventaire
+incidentes-remover = Supprimer
+incidentes-incidente_removido = Incident supprimé.
+inventario-levar_ao_no_grave_antes = Enregistrez ou abandonnez d’abord les modifications du danger.
+epi-escolha = choisir

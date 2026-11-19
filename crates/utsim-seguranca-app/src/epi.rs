@@ -97,7 +97,11 @@ impl TelaEpi {
                         if ui.small_button(tx("epi-editar")).clicked() {
                             editar = Some(e.clone());
                         }
-                        if ui.small_button(tx("epi-remover")).clicked() {
+                        if utsim_ui_tema::campos::botao_confirmado(
+                            ui,
+                            tx("epi-remover"),
+                            ("epi", &e.id),
+                        ) {
                             tirar = Some(e.id.clone());
                         }
                     });
@@ -121,7 +125,7 @@ impl TelaEpi {
                     ui.label(tx("epi-tipo"));
                     egui::ComboBox::from_id_salt("tipo_epi")
                         .selected_text(if e.tipo.is_empty() {
-                            "escolha"
+                            tx("epi-escolha")
                         } else {
                             &e.tipo
                         })
@@ -145,7 +149,7 @@ impl TelaEpi {
                     ui.label(tx("epi-ca_numero_digitado_o_programa"));
                     ui.add(egui::TextEdit::singleline(&mut e.ca).desired_width(100.0));
                     ui.label(tx("epi-validade_do_ca_aaaa_mm"));
-                    ui.add(egui::TextEdit::singleline(&mut e.validade_ca).desired_width(100.0));
+                    util::campo_data(ui, &mut e.validade_ca, None, 100.0);
                 });
                 ui.horizontal(|ui| {
                     let mut tem = e.troca_dias.is_some();

@@ -364,7 +364,8 @@ impl TelaErgonomia {
                             .add(
                                 egui::DragValue::new(&mut m.carga_kg)
                                     .range(0.0..=200.0)
-                                    .speed(0.5),
+                                    .speed(0.5)
+                                    .custom_parser(utsim_ui_tema::campos::ler_numero),
                             )
                             .changed();
                         mudou |= combo(ui, (id, "pega"), &mut m.pega, &PEGA);
