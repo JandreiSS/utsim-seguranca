@@ -260,25 +260,30 @@ impl TelaChecklist {
                 }
             }
         });
-        ui.horizontal(|ui| {
-            ui.label(tx("checklist-importar_csv_tema_item_severidade"));
-            utsim_ui_tema::arquivos::campo(
-                ui,
-                &mut self.arquivo_csv,
-                utsim_ui_tema::arquivos::Tipo::Abrir,
-                tx("checklist-escolha_o_arquivo_csv"),
-                &[utsim_ui_tema::arquivos::CSV],
-                300.0,
-            );
-            ui.label(tx("checklist-nome"));
-            ui.add(egui::TextEdit::singleline(&mut self.nome_modelo).desired_width(160.0));
-            if ui.button(tx("checklist-ler")).clicked() {
-                self.importar_csv(s);
-            }
-            if ui.button(tx("checklist-guardar_na_unidade")).clicked() {
-                self.guardar_modelo(s);
-            }
-        });
+        // Importar outro modelo fica recolhido: quem começa usa o checklist próprio.
+        egui::CollapsingHeader::new(tx("checklist-importar_outro_modelo"))
+            .id_salt("importar_modelo_checklist")
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(tx("checklist-importar_csv_tema_item_severidade"));
+                    utsim_ui_tema::arquivos::campo(
+                        ui,
+                        &mut self.arquivo_csv,
+                        utsim_ui_tema::arquivos::Tipo::Abrir,
+                        tx("checklist-escolha_o_arquivo_csv"),
+                        &[utsim_ui_tema::arquivos::CSV],
+                        300.0,
+                    );
+                    ui.label(tx("checklist-nome"));
+                    ui.add(egui::TextEdit::singleline(&mut self.nome_modelo).desired_width(160.0));
+                    if ui.button(tx("checklist-ler")).clicked() {
+                        self.importar_csv(s);
+                    }
+                    if ui.button(tx("checklist-guardar_na_unidade")).clicked() {
+                        self.guardar_modelo(s);
+                    }
+                })
+            });
 
         // Inspeções gravadas.
         ui.separator();
@@ -316,6 +321,7 @@ impl TelaChecklist {
 
         // Nova inspeção.
         ui.separator();
+        ui.strong(tx("checklist-nova_inspecao"));
         ui.horizontal(|ui| {
             ui.label(tx("checklist-posto"));
             let nome = postos

@@ -354,7 +354,7 @@ impl TelaErgonomia {
                         });
                         let id = (&e.ator, &e.elemento);
                         ui.label(&e.elemento);
-                        ui.label(format!("{:.0}", e.por_hora));
+                        ui.label(utsim_idiomas::marca_decimal(&format!("{:.0}", e.por_hora)));
                         let mut mudou = false;
                         mudou |= combo(ui, (id, "tronco"), &mut m.tronco, &POSTURA);
                         mudou |= combo(ui, (id, "bracos"), &mut m.bracos, &POSTURA);
@@ -370,7 +370,7 @@ impl TelaErgonomia {
                             .changed();
                         mudou |= combo(ui, (id, "pega"), &mut m.pega, &PEGA);
                         mudou |= combo(ui, (id, "vibracao"), &mut m.vibracao, &VIBRACAO);
-                        ui.label(format!("{:.1}", e.nota));
+                        ui.label(utsim_idiomas::marca_decimal(&format!("{:.1}", e.nota)));
                         ui.label(e.faixa);
                         ui.end_row();
                         if mudou {
@@ -445,11 +445,21 @@ impl TelaErgonomia {
                         ui.strong(c);
                     }
                     ui.end_row();
-                    let opt = |v: Option<f64>| v.map_or("–".to_string(), |x| format!("{x:.2}"));
+                    let opt = |v: Option<f64>| {
+                        v.map_or("–".to_string(), |x| {
+                            utsim_idiomas::marca_decimal(&format!("{x:.2}"))
+                        })
+                    };
                     for c in &comparacao {
                         ui.label(&c.ator);
-                        ui.label(format!("{:.1}", c.nota_antes));
-                        ui.label(format!("{:.1}", c.nota_depois));
+                        ui.label(utsim_idiomas::marca_decimal(&format!(
+                            "{:.1}",
+                            c.nota_antes
+                        )));
+                        ui.label(utsim_idiomas::marca_decimal(&format!(
+                            "{:.1}",
+                            c.nota_depois
+                        )));
                         ui.label(opt(c.padrao_antes));
                         ui.label(opt(c.padrao_depois));
                         ui.end_row();

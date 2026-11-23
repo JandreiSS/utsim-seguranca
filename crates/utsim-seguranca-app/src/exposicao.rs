@@ -24,7 +24,10 @@ pub struct TelaExposicao {
 fn media(ui: &mut egui::Ui, nome: &str, valores: &[f64]) {
     let i = interval(valores);
     ui.label(nome);
-    ui.label(format!("{:.2} ± {:.2}", i.mean, i.half_width));
+    ui.label(utsim_idiomas::marca_decimal(&format!(
+        "{:.2} ± {:.2}",
+        i.mean, i.half_width
+    )));
     ui.end_row();
 }
 
@@ -58,7 +61,7 @@ fn sob_carga_ui(ui: &mut egui::Ui, reps: &[Exposure]) {
             for c in &e0.under_load {
                 ui.label(&c.crane);
                 ui.label(&c.person);
-                let t = format!("{:.1}", c.time);
+                let t = utsim_idiomas::marca_decimal(&format!("{:.1}", c.time));
                 if c.time > 0.0 {
                     ui.colored_label(vermelho, t);
                 } else {
@@ -238,7 +241,7 @@ impl TelaExposicao {
                 for z in &e0.zones {
                     ui.label(&z.zone);
                     ui.label(&z.person);
-                    ui.label(format!("{:.1}", z.time));
+                    ui.label(utsim_idiomas::marca_decimal(&format!("{:.1}", z.time)));
                     ui.label(z.entries.to_string());
                     ui.label(z.entries_without_ppe.to_string());
                     ui.label(z.missing_ppe.join(", "));

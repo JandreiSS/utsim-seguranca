@@ -643,7 +643,7 @@ impl TelaIncidentes {
                 linha(
                     ui,
                     tx("incidentes-horas_de_exposicao"),
-                    format!("{:.1}", ind.horas),
+                    utsim_idiomas::marca_decimal(&format!("{:.1}", ind.horas + 0.0)),
                 );
                 for t in Tipo::TODOS {
                     linha(
@@ -655,22 +655,27 @@ impl TelaIncidentes {
                 linha(
                     ui,
                     tx("incidentes-taxa_de_frequencia"),
-                    format!("{:.2}", ind.taxa_frequencia),
+                    utsim_idiomas::marca_decimal(&format!("{:.2}", ind.taxa_frequencia)),
                 );
                 linha(
                     ui,
                     tx("incidentes-taxa_de_frequencia_com_afastamento"),
-                    format!("{:.2}", ind.taxa_frequencia_afastamento),
+                    utsim_idiomas::marca_decimal(&format!(
+                        "{:.2}",
+                        ind.taxa_frequencia_afastamento
+                    )),
                 );
                 linha(
                     ui,
                     tx("incidentes-taxa_de_gravidade"),
-                    format!("{:.2}", ind.taxa_gravidade),
+                    utsim_idiomas::marca_decimal(&format!("{:.2}", ind.taxa_gravidade)),
                 );
                 linha(
                     ui,
                     tx("incidentes-quase_acidentes_por_lesao"),
-                    ind.razao_quase.map_or("–".into(), |r| format!("{r:.2}")),
+                    ind.razao_quase.map_or("–".into(), |r| {
+                        utsim_idiomas::marca_decimal(&format!("{r:.2}"))
+                    }),
                 );
                 linha(
                     ui,
@@ -679,7 +684,12 @@ impl TelaIncidentes {
                 );
             });
         if ind.horas <= 0.0 {
-            ui.colored_label(VERMELHO, tx("incidentes-sem_horas_homem_no_periodo"));
+            ui.horizontal(|ui| {
+                ui.colored_label(VERMELHO, tx("incidentes-sem_horas_homem_no_periodo"));
+                if ui.button(tx("incidentes-lancar_horas_homem")).clicked() {
+                    self.aba = Aba::Horas;
+                }
+            });
         }
         for (titulo, p, id) in [
             (

@@ -205,3 +205,72 @@ fn remover_incidente_picture() {
         }
     }
 }
+
+/// O caminho de quem começa: o inventário de um posto em cada etapa (antes e depois de ter
+/// posto), as quatro abas de Incidentes, o Checklist e o EPI, numa unidade nova.
+#[test]
+fn primeira_vez_picture() {
+    use utsim_seguranca_app::incidentes::Aba;
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = App::new(Some(dir.path().join("cfg.json")));
+    assert!(
+        app.sessao
+            .criar(&dir.path().join("unidade"), "Fábrica", "Ana")
+    );
+    let ctx = Context::default();
+    let mut cap = Captura::new(ctx, vec2(1280.0, 860.0));
+    let mut fotos = Vec::new();
+    app.tela = Tela::Inventario;
+    fotos.push((
+        "seg_inventario_sem_posto".to_string(),
+        cap.imagem(3, |ui| app.draw(ui)),
+    ));
+    let posto = utsim_posto::Posto {
+        nome: "Prensa 2".into(),
+        area: "Estamparia".into(),
+        pessoas_expostas: 2,
+        ..Default::default()
+    };
+    let id = app
+        .sessao
+        .unidade
+        .as_mut()
+        .unwrap()
+        .gravar_posto(&posto)
+        .unwrap();
+    app.inventario.posto = id;
+    for etapa in 0..5 {
+        app.inventario.etapa = etapa;
+        fotos.push((
+            format!("seg_inventario_etapa{etapa}"),
+            cap.imagem(3, |ui| app.draw(ui)),
+        ));
+    }
+    app.tela = Tela::Incidentes;
+    for (aba, nome) in [
+        (Aba::Registro, "registro"),
+        (Aba::Horas, "horas"),
+        (Aba::Indicadores, "indicadores"),
+        (Aba::Pessoas, "pessoas"),
+    ] {
+        app.incidentes.aba = aba;
+        fotos.push((
+            format!("seg_incidentes_{nome}"),
+            cap.imagem(3, |ui| app.draw(ui)),
+        ));
+    }
+    app.tela = Tela::Checklist;
+    fotos.push((
+        "seg_checklist".to_string(),
+        cap.imagem(3, |ui| app.draw(ui)),
+    ));
+    app.tela = Tela::Epi;
+    fotos.push(("seg_epi".to_string(), cap.imagem(3, |ui| app.draw(ui))));
+    if let Some(d) = std::env::var_os("UTSIM_CAPTURAS") {
+        let d = std::path::PathBuf::from(d);
+        std::fs::create_dir_all(&d).unwrap();
+        for (nome, img) in &fotos {
+            img.salvar_png(&d.join(format!("{nome}.png"))).unwrap();
+        }
+    }
+}

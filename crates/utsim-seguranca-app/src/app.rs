@@ -189,6 +189,9 @@ impl App {
                 Tela::Incidentes => self.incidentes.ui(ui, &mut self.sessao),
                 Tela::Relatorio => self.relatorio.ui(ui, &mut self.sessao),
             });
+            if std::mem::take(&mut self.inventario.ir_postos) {
+                self.tela = Tela::Postos;
+            }
         });
     }
 }

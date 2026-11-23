@@ -54,6 +54,8 @@ pub struct TelaInventario {
     modelo_do_posto: Option<PathBuf>,
     /// Pedido ao modelo (abrir o nó, levar um perigo), atendido pelo app com a tela Modelo.
     pub pedido: Option<PedidoNo>,
+    /// Pedido de ir à tela Postos (a unidade ainda não tem postos).
+    pub ir_postos: bool,
 }
 
 /// O que o inventário pede ao modelo ligado ao posto.
@@ -298,6 +300,9 @@ impl TelaInventario {
         ui.heading(tx("inventario-inventario_de_riscos_por_posto"));
         if inv.postos.is_empty() {
             ui.label(tx("inventario-a_unidade_ainda_nao_tem"));
+            if ui.button(tx("inventario-ir_para_postos")).clicked() {
+                self.ir_postos = true;
+            }
             return;
         }
         if !inv.postos.iter().any(|p| p.id == self.posto) {
@@ -307,8 +312,16 @@ impl TelaInventario {
         let hoje = util::hoje();
 
         ui.horizontal_wrapped(|ui| {
-            for (i, e) in ETAPAS.iter().enumerate() {
-                ui.selectable_value(&mut self.etapa, i, *e);
+            // As etapas na língua escolhida (o core guarda os nomes em português).
+            const NOMES: [&str; 5] = [
+                "inventario-etapa_1",
+                "inventario-etapa_2",
+                "inventario-etapa_3",
+                "inventario-etapa_4",
+                "inventario-etapa_5",
+            ];
+            for (i, chave) in NOMES.iter().enumerate().take(ETAPAS.len()) {
+                ui.selectable_value(&mut self.etapa, i, tx(chave));
             }
         });
         let nome_posto = inv
@@ -424,6 +437,9 @@ impl TelaInventario {
 
     fn etapa_perigos(&mut self, ui: &mut egui::Ui, meus: &[Perigo], cmds: &mut Vec<Cmd>) {
         let objeto = self.objeto_do_posto.clone();
+        if meus.is_empty() && self.novo_perigo.is_none() {
+            ui.label(tx("inventario-nenhum_perigo_ainda"));
+        }
         for p in meus {
             if p.eh_do_no() {
                 egui::CollapsingHeader::new(format!(
@@ -581,6 +597,9 @@ impl TelaInventario {
         cmds: &mut Vec<Cmd>,
     ) {
         let m = &inv.matriz;
+        if meus.is_empty() {
+            ui.label(tx("inventario-sem_perigos_neste_posto_levante"));
+        }
         let sem: Vec<&str> = inv.sem_acao().iter().map(|p| p.id.as_str()).collect();
         for p in meus {
             ui.group(|ui| {
@@ -662,6 +681,9 @@ impl TelaInventario {
         cmds: &mut Vec<Cmd>,
     ) {
         let m = &inv.matriz;
+        if meus.is_empty() {
+            ui.label(tx("inventario-sem_perigos_neste_posto_levante"));
+        }
         for p in meus {
             ui.group(|ui| {
                 ui.horizontal(|ui| {
