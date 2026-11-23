@@ -2,14 +2,14 @@
 //! pessoas da pasta restrita. Pessoas só aparecem pelo código. O nome só é mostrado no
 //! registro, e só quando a pasta restrita abre; os indicadores nunca mostram nomes.
 
-use crate::texto::{fx, tx, vx};
+use crate::texto::{dx, fx, tx, vx};
 use eframe::egui::{self, Color32};
 use egui_plot::{Bar, BarChart, Plot};
 use utsim_posto::{Pessoa, Restrita};
 use utsim_posto_ui::{Sessao, util};
 use utsim_seguranca_core::incidentes::{
     CONFIG_INDICADORES, Config, HORAS, HorasHomem, INCIDENTES, Incidente, Indicadores, Tipo,
-    carta_mensal, indicadores,
+    carta_mensal, indicadores, mes_valido,
 };
 use utsim_ui_tema::campos::{
     botao_confirmado, ler_numero, texto_com_rotulo as campo, texto_longo_com_rotulo as campo_longo,
@@ -120,19 +120,67 @@ impl TelaIncidentes {
         }
     }
 
-    /// Grava as horas-homem de um mês (um registro por mês).
+    /// Grava as horas-homem de um mês (um registro por mês, o id é o mês: gravar um mês que
+    /// já tem horas troca o valor, e a tela pede confirmação antes).
     pub fn gravar_horas(&mut self, s: &mut Sessao) -> bool {
-        let h = self.horas.clone();
-        if h.mes.len() != 7 || !h.horas.is_finite() || h.horas <= 0.0 {
+        let mut h = self.horas.clone();
+        h.mes = h.mes.trim().to_string();
+        if !mes_valido(&h.mes) {
+            s.falhar(tx("incidentes-mes_invalido"));
+            return false;
+        }
+        if !h.horas.is_finite() || h.horas <= 0.0 {
             s.falhar(tx("incidentes-informe_o_mes_aaaa_mm"));
             return false;
         }
+        h.id = h.mes.clone();
         let Some(u) = s.unidade.as_mut() else {
             return false;
         };
         let r = u.gravar(HORAS, &h.mes, &h);
-        s.resultado(r, tx("incidentes-horas_homem_gravadas"))
+        if s.resultado(r, tx("incidentes-horas_homem_gravadas"))
             .is_some()
+        {
+            self.horas = HorasHomem::default();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Remove as horas-homem de um mês.
+    pub fn remover_horas(&mut self, s: &mut Sessao, mes: &str) {
+        let Some(u) = s.unidade.as_mut() else {
+            return;
+        };
+        let r = u.remover(HORAS, mes);
+        s.resultado(r, &fx("incidentes-horas_removidas", &[("mes", vx(&mes))]));
+    }
+
+    /// Corrige o nome, o setor ou o consentimento da pessoa em edição (o código fica).
+    pub fn atualizar_pessoa(&mut self, s: &mut Sessao) -> bool {
+        let p = self.pessoa.clone();
+        if p.nome.trim().len() < 2 {
+            s.falhar(tx("incidentes-informe_o_nome_da_pessoa"));
+            return false;
+        }
+        let Some(r) = self.restrita(s) else {
+            return false;
+        };
+        match r.atualizar(&p) {
+            Ok(()) => {
+                self.pessoa = Pessoa::default();
+                s.avisar(fx(
+                    "incidentes-pessoa_atualizada",
+                    &[("codigo", vx(&p.codigo))],
+                ));
+                true
+            }
+            Err(e) => {
+                s.falhar(e.to_string());
+                false
+            }
+        }
     }
 
     pub fn config(&self, s: &Sessao) -> Config {
@@ -488,16 +536,30 @@ impl TelaIncidentes {
 
     fn horas_ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         ui.label(tx("incidentes-horas_de_exposicao_por_mes"));
+        let lista = Self::horas_homem(s);
+        let mut remover = None;
         egui::Grid::new("grade_horas").striped(true).show(ui, |ui| {
             ui.strong(tx("incidentes-mes"));
             ui.strong(tx("incidentes-horas"));
             ui.end_row();
-            for h in Self::horas_homem(s) {
+            for h in &lista {
                 ui.label(&h.mes);
-                ui.label(format!("{:.1}", h.horas));
+                ui.label(utsim_idiomas::marca_decimal(&format!("{:.1}", h.horas)));
+                ui.horizontal(|ui| {
+                    // Editar traz o mês ao formulário de baixo.
+                    if ui.small_button(tx("incidentes-editar")).clicked() {
+                        self.horas = h.clone();
+                    }
+                    if botao_confirmado(ui, tx("incidentes-remover"), ("horas", &h.mes)) {
+                        remover = Some(h.mes.clone());
+                    }
+                });
                 ui.end_row();
             }
         });
+        if let Some(m) = remover {
+            self.remover_horas(s, &m);
+        }
         ui.horizontal(|ui| {
             ui.label(tx("incidentes-mes_aaaa_mm"));
             ui.add(egui::TextEdit::singleline(&mut self.horas.mes).desired_width(80.0));
@@ -507,10 +569,36 @@ impl TelaIncidentes {
                     .speed(10.0)
                     .custom_parser(ler_numero),
             );
-            if ui.button(tx("incidentes-gravar_horas")).clicked() {
-                self.gravar_horas(s);
-            }
         });
+        let mes = self.horas.mes.trim().to_string();
+        if !mes.is_empty() && !mes_valido(&mes) {
+            ui.colored_label(VERMELHO, tx("incidentes-mes_invalido"));
+        }
+        // O mês é o id: gravar um mês que já tem horas troca o valor. Avisa e pede
+        // confirmação no lugar do botão.
+        let existente = lista
+            .iter()
+            .find(|h| h.mes == mes && h.horas != self.horas.horas);
+        let gravar = match existente {
+            Some(e) => {
+                ui.colored_label(
+                    VERMELHO,
+                    fx(
+                        "incidentes-mes_ja_tem_horas",
+                        &[("mes", vx(&mes)), ("horas", dx(format!("{:.1}", e.horas)))],
+                    ),
+                );
+                botao_confirmado(
+                    ui,
+                    tx("incidentes-substituir_horas"),
+                    ("substituir_horas", &mes),
+                )
+            }
+            None => ui.button(tx("incidentes-gravar_horas")).clicked(),
+        };
+        if gravar {
+            self.gravar_horas(s);
+        }
     }
 
     fn indicadores_ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
@@ -718,8 +806,9 @@ impl TelaIncidentes {
                         tx("inventario-nao")
                     });
                     if pode && !p.anonimizada {
-                        if self.confirmar.as_deref() == Some(p.codigo.as_str()) {
-                            ui.horizontal(|ui| {
+                        // Os botões ficam juntos numa célula da grade.
+                        ui.horizontal(|ui| {
+                            if self.confirmar.as_deref() == Some(p.codigo.as_str()) {
                                 if ui
                                     .small_button(tx("incidentes-confirmar_apaga_o_nome_para"))
                                     .clicked()
@@ -731,10 +820,15 @@ impl TelaIncidentes {
                                 if ui.small_button(tx("incidentes-cancelar")).clicked() {
                                     self.confirmar = None;
                                 }
-                            });
-                        } else if ui.small_button(tx("incidentes-anonimizar")).clicked() {
-                            self.confirmar = Some(p.codigo.clone());
-                        }
+                                return;
+                            }
+                            if ui.small_button(tx("incidentes-editar")).clicked() {
+                                self.pessoa = p.clone();
+                            }
+                            if ui.small_button(tx("incidentes-anonimizar")).clicked() {
+                                self.confirmar = Some(p.codigo.clone());
+                            }
+                        });
                     } else {
                         ui.label("");
                     }
@@ -746,14 +840,32 @@ impl TelaIncidentes {
             return;
         }
         ui.separator();
-        ui.strong(tx("incidentes-cadastrar_pessoa"));
+        // Com código: a pessoa em edição (Editar na lista); sem: um cadastro novo.
+        let editando = !self.pessoa.codigo.is_empty();
+        if editando {
+            ui.strong(fx(
+                "incidentes-editando_pessoa",
+                &[("codigo", vx(&self.pessoa.codigo))],
+            ));
+        } else {
+            ui.strong(tx("incidentes-cadastrar_pessoa"));
+        }
         campo(ui, tx("incidentes-nome"), &mut self.pessoa.nome);
         campo(ui, tx("incidentes-setor"), &mut self.pessoa.setor);
         ui.checkbox(
             &mut self.pessoa.consentimento,
             tx("incidentes-consentimento_registrado"),
         );
-        if ui.button(tx("incidentes-cadastrar")).clicked() {
+        if editando {
+            ui.horizontal(|ui| {
+                if ui.button(tx("incidentes-gravar_alteracoes")).clicked() {
+                    self.atualizar_pessoa(s);
+                }
+                if ui.button(tx("incidentes-cancelar")).clicked() {
+                    self.pessoa = Pessoa::default();
+                }
+            });
+        } else if ui.button(tx("incidentes-cadastrar")).clicked() {
             self.cadastrar(s);
         }
     }

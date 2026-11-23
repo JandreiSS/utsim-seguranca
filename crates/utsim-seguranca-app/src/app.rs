@@ -105,7 +105,15 @@ impl App {
         egui::Panel::bottom("aviso_legal").show(ui, |ui| {
             ui.colored_label(egui::Color32::from_rgb(230, 160, 40), crate::AVISO_LEGAL);
         });
-        egui::Panel::bottom("estado").show(ui, |ui| self.sessao.barra(ui));
+        // Desfazer e Refazer das gravações na unidade, em todas as telas. Na tela Modelo os
+        // atalhos ficam com o editor do modelo.
+        let atalhos = self.tela != Tela::Modelo;
+        egui::Panel::bottom("estado").show(ui, |ui| {
+            ui.horizontal(|ui| {
+                self.sessao.desfazer_ui(ui, atalhos);
+                self.sessao.barra(ui);
+            });
+        });
         if let Some((modelo, objeto)) = self.modelo.pedido_ferramentas.take() {
             self.ferramentas.abrir_no(&modelo, &objeto);
             self.tela = Tela::Ferramentas;
