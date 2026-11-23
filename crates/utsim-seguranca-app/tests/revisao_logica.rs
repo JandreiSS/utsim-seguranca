@@ -63,11 +63,13 @@ fn nova_inspecao_exige_a_maquina_com_o_aviso_ao_lado_do_campo() {
     let texto = quadro(&mut app, &ctx);
     assert!(texto.contains("Informe a máquina."), "{texto}");
     app.checklist.posto = app.sessao.unidade.as_ref().unwrap().postos()[0].id.clone();
-    assert!(!app.checklist.nova(&mut app.sessao));
-    assert!(app.checklist.inspecao.is_none());
     app.checklist.maquina = "Prensa 2".into();
     let texto = quadro(&mut app, &ctx);
     assert!(!texto.contains("Informe a máquina."), "{texto}");
+    app.checklist.maquina.clear();
+    assert!(!app.checklist.nova(&mut app.sessao));
+    assert!(app.checklist.inspecao.is_none());
+    app.checklist.maquina = "Prensa 2".into();
     assert!(app.checklist.nova(&mut app.sessao));
 }
 
