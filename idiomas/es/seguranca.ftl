@@ -251,6 +251,7 @@ incidentes-lsc = LSC
 incidentes-lic = LIC
 incidentes-dados_pessoais_ficam_so_na = Los datos personales quedan solo en la carpeta restringida (LGPD). En el resto de la unidad la persona aparece por el código.
 incidentes-a_pasta_restrita_nao_existe = La carpeta restringida no existe o usted no puede abrirla.
+incidentes-salve_a_unidade_antes = La carpeta restringida solo existe en una unidad guardada. Guarde la unidad (Ctrl+S) y después cree la carpeta restringida.
 incidentes-pasta_fora_da_unidade_vazio = Carpeta fuera de la unidad (vacío: dentro de la unidad)
 incidentes-escolha_a_pasta_restrita = Elija la carpeta restringida
 incidentes-quem_pode_gravar_autores_separados = Quién puede guardar (autores separados por coma; vacío: solo usted)

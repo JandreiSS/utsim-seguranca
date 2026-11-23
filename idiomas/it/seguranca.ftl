@@ -253,6 +253,7 @@ incidentes-lsc = LCS
 incidentes-lic = LCI
 incidentes-dados_pessoais_ficam_so_na = I dati personali restano solo nella cartella riservata (LGPD). Nel resto dell'unità la persona compare con il codice.
 incidentes-a_pasta_restrita_nao_existe = La cartella riservata non esiste o non puoi aprirla.
+incidentes-salve_a_unidade_antes = La cartella riservata esiste solo in un'unità salvata. Salva l'unità (Ctrl+S) e poi crea la cartella riservata.
 incidentes-pasta_fora_da_unidade_vazio = Cartella fuori dall'unità (vuoto: dentro l'unità)
 incidentes-escolha_a_pasta_restrita = Scegli la cartella riservata
 incidentes-quem_pode_gravar_autores_separados = Chi può salvare (autori separati da virgola; vuoto: solo tu)

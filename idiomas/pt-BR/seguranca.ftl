@@ -251,6 +251,7 @@ incidentes-lsc = LSC
 incidentes-lic = LIC
 incidentes-dados_pessoais_ficam_so_na = Dados pessoais ficam só na pasta restrita (LGPD). No resto da unidade a pessoa aparece pelo código.
 incidentes-a_pasta_restrita_nao_existe = A pasta restrita não existe ou não abre para você.
+incidentes-salve_a_unidade_antes = A pasta restrita só existe numa unidade salva. Salve a unidade (Ctrl+S) e depois crie a pasta restrita.
 incidentes-pasta_fora_da_unidade_vazio = Pasta fora da unidade (vazio: dentro da unidade)
 incidentes-escolha_a_pasta_restrita = Escolha a pasta restrita
 incidentes-quem_pode_gravar_autores_separados = Quem pode gravar (autores separados por vírgula; vazio: só você)

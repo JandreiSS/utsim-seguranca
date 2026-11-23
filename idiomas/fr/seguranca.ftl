@@ -253,6 +253,7 @@ incidentes-lsc = LCS
 incidentes-lic = LCI
 incidentes-dados_pessoais_ficam_so_na = Les données personnelles restent uniquement dans le dossier restreint (LGPD). Dans le reste de l'unité, la personne apparaît par son code.
 incidentes-a_pasta_restrita_nao_existe = Le dossier restreint n'existe pas ou vous ne pouvez pas l'ouvrir.
+incidentes-salve_a_unidade_antes = Le dossier restreint n'existe que dans une unité enregistrée. Enregistrez l'unité (Ctrl+S) puis créez le dossier restreint.
 incidentes-pasta_fora_da_unidade_vazio = Dossier hors de l'unité (vide : dans l'unité)
 incidentes-escolha_a_pasta_restrita = Choisissez le dossier restreint
 incidentes-quem_pode_gravar_autores_separados = Qui peut enregistrer (auteurs séparés par des virgules ; vide : vous seul)

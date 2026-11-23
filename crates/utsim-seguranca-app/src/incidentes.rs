@@ -233,6 +233,11 @@ impl TelaIncidentes {
 
     /// Cria a pasta restrita da unidade.
     pub fn criar_restrita(&mut self, s: &mut Sessao) -> bool {
+        // A pasta restrita fica junto da pasta da unidade: só existe depois de salvar.
+        if s.eh_rascunho() {
+            s.falhar(tx("incidentes-salve_a_unidade_antes"));
+            return false;
+        }
         let Some(u) = s.unidade.as_mut() else {
             return false;
         };
@@ -753,6 +758,10 @@ impl TelaIncidentes {
     fn pessoas_ui(&mut self, ui: &mut egui::Ui, s: &mut Sessao) {
         ui.label(tx("incidentes-dados_pessoais_ficam_so_na"));
         let aberta = self.restrita(s).is_some();
+        if !aberta && s.eh_rascunho() {
+            ui.colored_label(VERMELHO, tx("incidentes-salve_a_unidade_antes"));
+            return;
+        }
         if !aberta {
             ui.colored_label(VERMELHO, tx("incidentes-a_pasta_restrita_nao_existe"));
             ui.horizontal(|ui| {

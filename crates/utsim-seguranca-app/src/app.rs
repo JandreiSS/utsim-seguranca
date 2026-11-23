@@ -49,17 +49,25 @@ pub struct App {
     pub relatorio: TelaRelatorio,
     /// O pedido de outro app (`--utsim-pedido`), respondido ao fechar.
     pub pedido: Option<utsim_posto_ui::abrir::Atendido>,
+    /// A unidade como documento: começa sem pasta, Salvar, Salvar como e a guarda.
+    pub documento: utsim_posto_ui::Documento,
 }
 
 impl App {
     pub fn new(config: Option<PathBuf>) -> App {
-        let sessao = Sessao::nova(config);
+        let mut sessao = Sessao::nova(config);
         sessao.usar_idioma_guardado();
+        // O app abre numa unidade em branco e já deixa trabalhar: ela vai para uma pasta no
+        // primeiro Salvar.
+        sessao.rascunho();
+        let mut inicial = TelaInicial::default();
+        inicial.sem_pasta = true;
         App {
             sessao,
-            tela: Tela::Inicial,
+            tela: Tela::Postos,
+            documento: utsim_posto_ui::Documento::default(),
             pedido: None,
-            inicial: TelaInicial::default(),
+            inicial,
             postos: TelaPostos::default(),
             modelo: crate::modelo::tela(),
             ferramentas: TelaFerramentas::nova(
@@ -96,6 +104,31 @@ impl App {
     }
 
     pub fn draw(&mut self, ui: &mut egui::Ui) {
+        // A barra do documento, no canto de cima à esquerda: salvamento automático, Salvar e
+        // Salvar como. Na tela Modelo o Ctrl+S fica com o editor do modelo.
+        egui::Panel::top("documento").show(ui, |ui| {
+            ui.add_space(2.0);
+            self.documento.barra(ui, &mut self.sessao);
+            ui.add_space(2.0);
+        });
+        self.documento
+            .atalhos(ui.ctx(), &mut self.sessao, self.tela != Tela::Modelo);
+        self.telas(ui);
+        // Fechar, abrir ou começar com trabalho não salvo: pergunta antes.
+        self.documento
+            .quadro(ui.ctx(), &mut self.sessao, crate::TITULO);
+        if self.documento.trocou() {
+            self.inicial = TelaInicial::default();
+            self.inicial.sem_pasta = true;
+            self.tela = if self.sessao.tem_modelo() {
+                Tela::Modelo
+            } else {
+                Tela::Postos
+            };
+        }
+    }
+
+    fn telas(&mut self, ui: &mut egui::Ui) {
         self.sessao.atualizar_se_preciso(ui.ctx());
         egui::Panel::left("navegacao")
             .default_size(utsim_ui_tema::navegacao::LARGURA)
@@ -238,6 +271,12 @@ impl App {
                     Err(e) => self.sessao.falhar(e),
                 }
             }
+            Some(Saida::PedirAbrir(p)) => self
+                .documento
+                .pedir(&mut self.sessao, utsim_posto_ui::Depois::Abrir(p)),
+            Some(Saida::PedirNova) => self
+                .documento
+                .pedir(&mut self.sessao, utsim_posto_ui::Depois::Nova),
             Some(Saida::Acao(_)) | None => {}
         }
     }

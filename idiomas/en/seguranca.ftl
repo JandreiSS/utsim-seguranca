@@ -251,6 +251,7 @@ incidentes-lsc = UCL
 incidentes-lic = LCL
 incidentes-dados_pessoais_ficam_so_na = Personal data stays only in the restricted folder (LGPD). Elsewhere in the unit, the person appears by code.
 incidentes-a_pasta_restrita_nao_existe = The restricted folder does not exist or cannot be opened by you.
+incidentes-salve_a_unidade_antes = The restricted folder only exists in a saved unit. Save the unit (Ctrl+S) and then create the restricted folder.
 incidentes-pasta_fora_da_unidade_vazio = Folder outside the unit (empty: inside the unit)
 incidentes-escolha_a_pasta_restrita = Choose the restricted folder
 incidentes-quem_pode_gravar_autores_separados = Who can write (authors separated by commas; empty: only you)
