@@ -322,6 +322,18 @@ inventario-acao_gravada = Action saved.
 inventario-acao_removida = Action removed.
 inventario-reavaliacao_registrada = Reassessment recorded.
 inventario-remover_perigo = Remove hazard
+inventario-editar = Edit
+inventario-remover_reavaliacao = Remove
+inventario-reavaliacao_removida = Reassessment removed.
+inventario-reavaliacao_gravada = Reassessment saved.
+inventario-gravar_reavaliacao = Save reassessment
+inventario-editando_reavaliacao = Editing the reassessment of { $data }.
+inventario-cancelar_edicao = Cancel editing
+inventario-reavaliacao_ja_registrada = This reassessment is already recorded. Change the date, P, S or the note to record another.
+inventario-perigo_removido_com = Hazard removed, with { $n ->
+        [one] one of its actions or reassessments
+       *[other] { $n } of its actions and reassessments
+    }.
 
 ## matriz.rs
 

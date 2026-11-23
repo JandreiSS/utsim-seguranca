@@ -324,6 +324,18 @@ inventario-acao_gravada = Action enregistrée.
 inventario-acao_removida = Action supprimée.
 inventario-reavaliacao_registrada = Réévaluation enregistrée.
 inventario-remover_perigo = Supprimer le danger
+inventario-editar = Modifier
+inventario-remover_reavaliacao = Supprimer
+inventario-reavaliacao_removida = Réévaluation supprimée.
+inventario-reavaliacao_gravada = Réévaluation enregistrée.
+inventario-gravar_reavaliacao = Enregistrer les modifications
+inventario-editando_reavaliacao = Modification de la réévaluation du { $data }.
+inventario-cancelar_edicao = Annuler la modification
+inventario-reavaliacao_ja_registrada = Cette réévaluation est déjà enregistrée. Changez la date, P, S ou la note pour en enregistrer une autre.
+inventario-perigo_removido_com = Danger supprimé, avec { $n ->
+        [one] une de ses actions ou réévaluations
+       *[other] { $n } de ses actions et réévaluations
+    }.
 
 ## matriz.rs
 

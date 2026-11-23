@@ -324,6 +324,18 @@ inventario-acao_gravada = Azione salvata.
 inventario-acao_removida = Azione rimossa.
 inventario-reavaliacao_registrada = Rivalutazione registrata.
 inventario-remover_perigo = Rimuovi pericolo
+inventario-editar = Modifica
+inventario-remover_reavaliacao = Rimuovi
+inventario-reavaliacao_removida = Rivalutazione rimossa.
+inventario-reavaliacao_gravada = Rivalutazione salvata.
+inventario-gravar_reavaliacao = Salva rivalutazione
+inventario-editando_reavaliacao = Modifica della rivalutazione del { $data }.
+inventario-cancelar_edicao = Annulla modifica
+inventario-reavaliacao_ja_registrada = Questa rivalutazione è già registrata. Cambia la data, P, S o la nota per registrarne un'altra.
+inventario-perigo_removido_com = Pericolo rimosso, con { $n ->
+        [one] una sua azione o rivalutazione
+       *[other] { $n } sue azioni e rivalutazioni
+    }.
 
 ## matriz.rs
 

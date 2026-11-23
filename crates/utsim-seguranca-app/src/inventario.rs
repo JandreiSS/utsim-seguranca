@@ -17,7 +17,7 @@ use utsim_posto::{Posto, Unidade};
 use utsim_posto_ui::{Sessao, TelaModelo, util};
 use utsim_seguranca_core::inventario::{
     ACOES, Acao, ETAPAS, Grupo, Hierarquia, Inventario, ORIGEM_NO, PERIGOS, Perigo, REAVALIACOES,
-    Reavaliacao, Situacao, passar_ao_no,
+    Reavaliacao, Situacao, passar_ao_no, remover_perigo,
 };
 use utsim_seguranca_core::matriz::{Degrau, Matriz};
 
@@ -30,6 +30,7 @@ enum Cmd {
     GravarAcao(Acao),
     RemoverAcao(String),
     GravarReav(Reavaliacao),
+    RemoverReav(String),
 }
 
 #[derive(Default)]
@@ -43,7 +44,7 @@ pub struct TelaInventario {
     pub novo_perigo: Option<Perigo>,
     /// Ação nova por id de perigo.
     novas_acoes: BTreeMap<String, Acao>,
-    /// Reavaliação nova por id de perigo.
+    /// Reavaliação nova (id vazio) ou em edição (id dela) por id de perigo.
     novas_reav: BTreeMap<String, Reavaliacao>,
     /// Os modelos ligados aos postos, para os perigos que moram no nó.
     modelos: Modelos,
@@ -683,12 +684,26 @@ impl TelaInventario {
                     .filter(|r| r.perigo == p.id)
                     .collect();
                 hist.sort_by(|a, b| a.data.cmp(&b.data));
+                let mut editar = None;
                 for r in hist {
                     ui.horizontal(|ui| {
                         ui.label(&r.data);
                         selo(ui, m, r.probabilidade, r.severidade);
                         ui.label(&r.nota);
+                        if ui.small_button(tx("inventario-editar")).clicked() {
+                            editar = Some(r.clone());
+                        }
+                        if botao_confirmado(
+                            ui,
+                            tx("inventario-remover_reavaliacao"),
+                            ("reavaliacao", &r.id),
+                        ) {
+                            cmds.push(Cmd::RemoverReav(r.id.clone()));
+                        }
                     });
+                }
+                if let Some(r) = editar {
+                    self.novas_reav.insert(p.id.clone(), r);
                 }
                 let n = self
                     .novas_reav
@@ -702,6 +717,13 @@ impl TelaInventario {
                         nota: String::new(),
                     });
                 ui.separator();
+                let editando = !n.id.is_empty();
+                if editando {
+                    ui.label(fx(
+                        "inventario-editando_reavaliacao",
+                        &[("data", vx(&n.data))],
+                    ));
+                }
                 ui.horizontal(|ui| {
                     ui.label(tx("inventario-data"));
                     utsim_posto_ui::util::campo_data(ui, &mut n.data, None, 100.0);
@@ -711,8 +733,29 @@ impl TelaInventario {
                     combo_degrau(ui, ("rs", &p.id), &mut n.severidade, &m.severidade);
                 });
                 campo_longo(ui, tx("inventario-nota"), &mut n.nota);
-                if ui.button(tx("inventario-registrar_reavaliacao")).clicked() {
-                    cmds.push(Cmd::GravarReav(n.clone()));
+                // Já gravada como está (o segundo clique de um duplo clique, ou a edição
+                // sem mudança): o botão fica desabilitado e diz por quê.
+                let repetida = inv.reavaliacao_repetida(n);
+                let mut cancelar = false;
+                ui.horizontal(|ui| {
+                    let rotulo = if editando {
+                        tx("inventario-gravar_reavaliacao")
+                    } else {
+                        tx("inventario-registrar_reavaliacao")
+                    };
+                    if ui
+                        .add_enabled(!repetida, egui::Button::new(rotulo))
+                        .on_disabled_hover_text(tx("inventario-reavaliacao_ja_registrada"))
+                        .clicked()
+                    {
+                        cmds.push(Cmd::GravarReav(n.clone()));
+                    }
+                    if editando && ui.button(tx("inventario-cancelar_edicao")).clicked() {
+                        cancelar = true;
+                    }
+                });
+                if cancelar {
+                    self.novas_reav.remove(&p.id);
                 }
             });
         }
@@ -730,9 +773,16 @@ impl TelaInventario {
                 }
             }
             Cmd::RemoverPerigo(id) => {
-                let r = u.remover(PERIGOS, &id);
-                if s.resultado(r, tx("inventario-perigo_removido")).is_some() {
+                // As ações e as reavaliações do perigo saem com ele.
+                let r = remover_perigo(u, &id);
+                let msg = match &r {
+                    Ok(n) if *n > 0 => fx("inventario-perigo_removido_com", &[("n", vx(n))]),
+                    _ => tx("inventario-perigo_removido").to_string(),
+                };
+                if s.resultado(r, &msg).is_some() {
                     self.perigos.remove(&id);
+                    self.novas_acoes.remove(&id);
+                    self.novas_reav.remove(&id);
                 }
             }
             Cmd::GravarAcao(a) => {
@@ -748,11 +798,25 @@ impl TelaInventario {
                 }
             }
             Cmd::GravarReav(r0) => {
-                let r = u.gravar(REAVALIACOES, "", &r0);
-                if s.resultado(r, tx("inventario-reavaliacao_registrada"))
+                let editando = !r0.id.is_empty();
+                let r = u.gravar(REAVALIACOES, &r0.id, &r0);
+                let msg = if editando {
+                    tx("inventario-reavaliacao_gravada")
+                } else {
+                    tx("inventario-reavaliacao_registrada")
+                };
+                // A nova fica no formulário como foi gravada: um segundo clique não a repete
+                // (o botão desabilita), e mudar um campo registra outra.
+                if s.resultado(r, msg).is_some() && editando {
+                    self.novas_reav.remove(&r0.perigo);
+                }
+            }
+            Cmd::RemoverReav(id) => {
+                let r = u.remover(REAVALIACOES, &id);
+                if s.resultado(r, tx("inventario-reavaliacao_removida"))
                     .is_some()
                 {
-                    self.novas_reav.remove(&r0.perigo);
+                    self.novas_reav.retain(|_, n| n.id != id);
                 }
             }
         }
