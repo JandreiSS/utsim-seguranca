@@ -4,7 +4,7 @@ Plano técnico, sem implementação, da frente de **engenharia de qualidade** e 
 
 Documentos relacionados, que este plano não repete:
 
-- `docs/plano_lean_seis_sigma.md`, o app UTSim Seis Sigma (DMAIC, FMEA com tabela de AP própria, MSA, plano de controle, `estudo.json`, pasta de projeto com diário);
+- `docs/plano_lean_seis_sigma.md`, o app UTSim LSS (DMAIC, FMEA com tabela de AP própria, MSA, plano de controle, `estudo.json`, pasta de projeto com diário);
 - `docs/plano_linhas_especializadas.md`, o pacote de linha (`biblioteca.ron`, `vocabulario.ron`, campos `line` e `preset`) e o Lean Office;
 - `docs/plano_chegadas_e_equipes_3d.md`, tipos de item, rótulos por expressão, equipes, prioridade e preempção;
 - `docs/plano_gemeo_digital_e_painel.md`, gêmeo digital, painel, CEP (E4) e capacidade (E6);
@@ -282,7 +282,7 @@ Todo conjunto guarda origem, hash e unidade. Medições de ambiente vindas das p
 
 ## 7. Integração com os outros apps
 
-### 7.1 UTSim Seis Sigma
+### 7.1 UTSim LSS
 
 - Ferramentas comuns (FMEA, AP, Pareto, Ishikawa, 5 porquês, A3, plano de controle) numa só crate, usada pelos dois apps.
 - Um 8D, um sinal de carta ou um risco alto podem abrir uma ideia na carteira do Seis Sigma, com os dados anexados.
