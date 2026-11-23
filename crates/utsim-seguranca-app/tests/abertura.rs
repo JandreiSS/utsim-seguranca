@@ -3,7 +3,7 @@
 
 use eframe::egui::{Context, vec2};
 use utsim_posto_ui::TelaInicial;
-use utsim_seguranca_app::App;
+use utsim_seguranca_app::{App, Tela};
 use utsim_ui_tema::captura::{Captura, Imagem};
 
 fn conferir(img: &Imagem, nome: &str) {
@@ -25,6 +25,8 @@ fn conferir(img: &Imagem, nome: &str) {
 fn abertura_picture() {
     let dir = tempfile::tempdir().unwrap();
     let mut app = App::new(Some(dir.path().join("cfg.json")));
+    // O app abre no trabalho, numa unidade sem pasta: a abertura fica no Início.
+    app.tela = Tela::Inicial;
     let ctx = Context::default();
     utsim_ui_tema::install(&ctx);
     utsim_ui_tema::usar_cor_do_app(&ctx, utsim_seguranca_app::app::COR_APP);
