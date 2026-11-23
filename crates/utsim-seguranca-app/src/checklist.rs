@@ -347,7 +347,10 @@ impl TelaChecklist {
                 ui.colored_label(VERMELHO, tx("checklist-informe_a_maquina"));
             }
             if ui
-                .add_enabled(!sem_maquina, egui::Button::new(tx("checklist-nova_inspecao")))
+                .add_enabled(
+                    !sem_maquina,
+                    egui::Button::new(tx("checklist-nova_inspecao")),
+                )
                 .clicked()
             {
                 self.nova(s);
