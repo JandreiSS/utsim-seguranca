@@ -32,6 +32,8 @@ pub struct TelaIncidentes {
     pub novo: Option<Incidente>,
     pub nova_causa: String,
     pub horas: HorasHomem,
+    /// The month field already got the current month once.
+    mes_sugerido: bool,
     /// Período dos indicadores (`AAAA-MM-DD`); vazio: do começo do ano até hoje.
     pub de: String,
     pub ate: String,
@@ -141,7 +143,10 @@ impl TelaIncidentes {
         if s.resultado(r, tx("incidentes-horas_homem_gravadas"))
             .is_some()
         {
-            self.horas = HorasHomem::default();
+            self.horas = HorasHomem {
+                mes: mes_atual(),
+                ..HorasHomem::default()
+            };
             true
         } else {
             false
@@ -565,6 +570,12 @@ impl TelaIncidentes {
         if let Some(m) = remover {
             self.remover_horas(s, &m);
         }
+        if !self.mes_sugerido {
+            self.mes_sugerido = true;
+            if self.horas.mes.is_empty() {
+                self.horas.mes = mes_atual();
+            }
+        }
         ui.horizontal(|ui| {
             ui.label(tx("incidentes-mes_aaaa_mm"));
             ui.add(egui::TextEdit::singleline(&mut self.horas.mes).desired_width(80.0));
@@ -772,8 +783,15 @@ impl TelaIncidentes {
             ui.colored_label(VERMELHO, tx("incidentes-salve_a_unidade_antes"));
             return;
         }
+        let criada = s.unidade.as_ref().is_some_and(|u| u.restrita_criada());
+        if !aberta && criada {
+            // It exists but does not open: the person has no access, and that is an error.
+            ui.colored_label(VERMELHO, tx("incidentes-pasta_restrita_sem_acesso"));
+            return;
+        }
         if !aberta {
-            ui.colored_label(VERMELHO, tx("incidentes-a_pasta_restrita_nao_existe"));
+            // Not created yet: nothing wrong, just the way to create it.
+            ui.label(tx("incidentes-pasta_restrita_ainda_nao_criada"));
             ui.horizontal(|ui| {
                 ui.label(tx("incidentes-pasta_fora_da_unidade_vazio"));
                 utsim_ui_tema::arquivos::campo(
@@ -888,4 +906,9 @@ impl TelaIncidentes {
             self.cadastrar(s);
         }
     }
+}
+
+/// The current month, `AAAA-MM`, to start the field of the exposure hours.
+fn mes_atual() -> String {
+    util::hoje().get(..7).unwrap_or("").to_string()
 }

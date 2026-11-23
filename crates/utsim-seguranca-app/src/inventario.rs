@@ -312,15 +312,7 @@ impl TelaInventario {
         let hoje = util::hoje();
 
         ui.horizontal_wrapped(|ui| {
-            // As etapas na língua escolhida (o core guarda os nomes em português).
-            const NOMES: [&str; 5] = [
-                "inventario-etapa_1",
-                "inventario-etapa_2",
-                "inventario-etapa_3",
-                "inventario-etapa_4",
-                "inventario-etapa_5",
-            ];
-            for (i, chave) in NOMES.iter().enumerate().take(ETAPAS.len()) {
+            for (i, chave) in ETAPAS.iter().enumerate() {
                 ui.selectable_value(&mut self.etapa, i, tx(chave));
             }
         });

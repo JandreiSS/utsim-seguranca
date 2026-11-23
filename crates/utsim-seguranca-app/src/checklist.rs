@@ -127,8 +127,12 @@ impl TelaChecklist {
 
     /// Começa uma inspeção do posto e da máquina escolhidos.
     pub fn nova(&mut self, s: &mut Sessao) -> bool {
-        if self.posto.is_empty() || self.maquina.trim().is_empty() {
+        if self.posto.is_empty() {
             s.falhar(tx("checklist-escolha_o_posto_e_informe"));
+            return false;
+        }
+        if self.maquina.trim().is_empty() {
+            s.falhar(tx("checklist-informe_a_maquina"));
             return false;
         }
         let responsavel = s
@@ -337,7 +341,15 @@ impl TelaChecklist {
                 });
             ui.label(tx("checklist-maquina"));
             ui.add(egui::TextEdit::singleline(&mut self.maquina).desired_width(180.0));
-            if ui.button(tx("checklist-nova_inspecao")).clicked() {
+            let sem_maquina = self.maquina.trim().is_empty();
+            if sem_maquina {
+                // The warning next to the field, and no inspection without a machine.
+                ui.colored_label(VERMELHO, tx("checklist-informe_a_maquina"));
+            }
+            if ui
+                .add_enabled(!sem_maquina, egui::Button::new(tx("checklist-nova_inspecao")))
+                .clicked()
+            {
                 self.nova(s);
             }
         });
