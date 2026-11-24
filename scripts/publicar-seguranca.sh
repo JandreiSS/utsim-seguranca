@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Publica o UTSim Segurança pelo launcher, como produto próprio (`seguranca`): monta a
-# pasta do programa, cifra, assina e grava o pacote e o manifesto na pasta de publicação (a
-# pasta do Google Drive). Não envia nada à internet: o Google Drive para computador sincroniza
-# a pasta. O launcher já instalado passa a mostrar o produto; ele não precisa mudar.
+# pasta do programa, cifra, assina e grava o pacote e o manifesto na pasta de publicação (local). Não envia nada à internet: depois, 'utsim-publicar github' sobe o pacote e o
+# manifesto para o GitHub. O launcher já instalado passa a mostrar o produto; ele não precisa mudar.
 #
 # Uso: bash scripts/publicar-seguranca.sh <pasta_de_publicação> [canal] [versão]
 #   canal   padrão: testes (ou estavel)
